@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Online .vmf Compiler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='components/UserCustomFiles.js') }}"></script>
+</head>
+
+<body>
+    <header>
+        <img id="logo" src="{{ url_for('static', filename='media/logo.png') }}">
+        <h1>Online .vmf Compiler</h1>
+        <div id="header-content-right">
+            <input id="input-ticket" type="text" placeholder="Ticket ID">
+            <button class="slim" id="button-input-ticket">Get compile job</button>
+        </div>
+    </header>
+    <main>
+        <div class="main-section" id="section-left">
+            <section class="section-top" id="section-left-top">
+                <span>Custom materials/models directories</span>
+            </section>
+            <section class="section-top" id="section-left-bottom">
+                <!-- Populated with <UserCustomFiles> elements via JS -->
+            </section>
+        </div>
+        <div class="main-section" id="section-right">
+            <section id="section-right-top">
+                <select id="select-game-vmf">
+                    <!-- Populated via JS -->
+                </select>
+                <label id="label-input-vmf" for="input-vmf">Select .vmf file</label>
+                <input hidden id="input-vmf" type="file" accept=".vmf">
+                <button class="inactive" id="button-compile-vmf"><img
+                        src="{{ url_for('static', filename='media/go.png') }}"><span>Compile map</span></button>
+            </section>
+            <section id="section-right-bottom">
+                <pre id="compiler-output">Compiler output</pre>
+            </section>
+        </div>
+    </main>
+    <footer>
+        <a href="https://guttespinat.no"></a>
+    </footer>
+</body>
+
+</html>
