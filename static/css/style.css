@@ -1,4 +1,5 @@
 :root {
+    /* Mains */
     --color-secondary: #412d60;
     --color-secondary-bright: rgb(76, 64, 120);
     --text-main: rgb(215, 201, 226);
@@ -9,8 +10,16 @@
     --button-hover: rgb(104, 188, 157);
     --button-click: rgb(52, 88, 75);
     --button-inactive: rgb(118, 130, 125);
+    
+    --border-color: rgb(44, 82, 68);
 
-    --border-color: rgb(52, 88, 75);
+    /* Accents */
+    --ok01: rgb(59, 152, 139);
+    --ok01-accent: var(--border-color);
+    --warning01: rgb(220, 189, 76);
+    --warning01-accent: rgb(244, 228, 171);
+    --error01: rgb(185, 55, 55);
+    --error01-accent: rgb(215, 123, 123);
 }
 
 
@@ -45,7 +54,8 @@ main {
     margin-inline: 4em;
     display: flex;
     flex-direction: row;
-    min-height: 80vh;
+    justify-content: center;
+    align-items: stretch;
 }
 
 section {
@@ -73,11 +83,15 @@ input {
     height: 2.5em;
 }
 
-pre {
-    background-color: rgb(8, 6, 10);
+pre, textarea.pre {
+    background-color: rgb(10 7 12);
+    color: var(--text-main);
+    resize: none;
     width: 100%;
     height: 100%;
-    padding: 0.5em;
+    padding: 0.25em;
+    border: var(--border-color) 1px solid;
+    border-radius: 8px;
 }
 
 code {
@@ -88,7 +102,7 @@ code {
 button {
     background-color: var(--button-active);
     color: var(--button-text);
-    height: 4em;
+    height: 3em;
     border-radius: 8px;
     font-weight: bold;
     display: flex;
@@ -133,13 +147,17 @@ button.inactive {
     align-items: center;
 }
 
-.section-top{
+.section-top {
     font-weight: bold;
 }
 
 .main-section {
     border: 1px var(--border-color) solid;
-    width: 50%;
+    border-radius: 8px;
+}
+
+#section-left{
+    width: 480px;
 }
 
 #section-right {
@@ -148,10 +166,7 @@ button.inactive {
 }
 
 #section-right-top {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 2em;
+    gap: 1em;
 }
 
 #label-input-vmf {
@@ -166,11 +181,79 @@ button.inactive {
     background-color: var(--color-secondary-bright);
 }
 
+#label-input-vmf.inactive {
+    background-color: var(--button-inactive) !important;
+    cursor: unset;
 
+    code {
+        background-color: var(--button-inactive) !important;
+    }
+}
+
+.flex {
+    display: flex;
+    column-gap: 16px;
+    flex-wrap: wrap;
+}
+
+.fd-lr {
+    flex-direction: row;
+}
+
+.fd-tb {
+    flex-direction: column;
+}
+
+.max {
+    min-width: 100%;
+}
+
+.labeled {
+    border-radius: 8px;
+    background-color: var(--ok01);
+    --ok01-accent: var(--border-color);
+    row-gap: 2px;
+    
+    span{
+        color:var(--border-color);
+        font-size: small;
+        font-weight: bold;
+        padding-left: 1em;
+    }
+    textarea {
+        margin-block: 0px;
+    }
+}
+
+.error{
+    border-color: var(--warning01) !important;
+    animation: horizontal-shake 0.2s ease-in-out 3;
+}
+
+@keyframes horizontal-shake {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-3px); }
+    50%      { transform: translateX(3px); }
+    75%      { transform: translateX(-3px); }
+}
+
+#response-output:focus {
+    height: 286px;
+    transition: height 0.35s ease;
+}
+
+#response-output {
+    height: 32px;
+    transition: height 0.35s ease;
+}
 
 @media (max-width: 991.98px) {
     #header-content-right {
         margin-inline-end: 1em;
+    }
+
+    main{
+        flex-direction: column;
     }
 
     #logo {

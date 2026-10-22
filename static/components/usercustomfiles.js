@@ -1,4 +1,4 @@
-import { addUserCustomFilesInputs } from "../js/usercustomfileshelpers.js"
+import { addUserCustomFilesInputs } from "../js/userCustomFilesHelpers.js"
 
 class UserCustomFiles extends HTMLElement {
     constructor() {
@@ -21,12 +21,7 @@ class UserCustomFiles extends HTMLElement {
         while (this.state === "loading") { }
 
         if (this.state === "ready") {
-            return {
-                "materials": this.materials,
-                "models": this.models,
-                "scripts": this.scripts,
-                "sounds": this.sounds
-            };
+            return this.materials.concat(this.models).concat(this.scripts).concat(this.sounds);
         }
     }
 
@@ -67,19 +62,20 @@ class UserCustomFiles extends HTMLElement {
             this.state = "loading";
             const files = event.target.files;
             this.folderName = getUploadedFolderName(files);
-
+            const folderNameRegex = new RegExp(`^${this.folderName}/`);
             for (const file of files) {
+                const fileObject = { path: file.webkitRelativePath.replace(folderNameRegex, ""), file: file };
                 if (this.resolveFolder(file, "materials")) {
-                    this.materials.push(file);
+                    this.materials.push(fileObject);
                 }
                 else if (this.resolveFolder(file, "models")) {
-                    this.models.push(file);
+                    this.models.push(fileObject);
                 }
                 else if (this.resolveFolder(file, "scripts")) {
-                    this.scripts.push(file);
+                    this.scripts.push(fileObject);
                 }
                 else if (this.resolveFolder(file, "sound")) {
-                    this.sounds.push(file);
+                    this.sounds.push(fileObject);
                 }
             }
 
@@ -89,9 +85,9 @@ class UserCustomFiles extends HTMLElement {
             addUserCustomFilesInputs();
             document.body.classList.remove("loading");
         });
-        
+
     }
-    
+
     resolveFolder(file, directoryFolderName) {
         return file.webkitRelativePath.startsWith(this.folderName + `/${directoryFolderName}/`);
     }
@@ -104,7 +100,7 @@ class UserCustomFiles extends HTMLElement {
             📜 Scripts: ${this.scripts.length}<br>
             🔊 Sounds: ${this.sounds.length}
         </small>`
-        }
+    }
 }
 
 customElements.define("game-directory", UserCustomFiles);

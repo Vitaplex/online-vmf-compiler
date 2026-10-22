@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, jsonify, render_template, abort, redirect, request
 from vmf_compiler_wrapper import VmfCompilerWrapper
 
@@ -15,18 +17,18 @@ def compile_map():
     print(content)
     return ""
 
-@app.route("/api/files", methods=["GET"])
+@app.route("/api/files", methods=["POST"])
 def get_directory():
-    entry = vmf_compiler_wrapper.get_materials_models_in_directory(request.args.get('game'))
+    files = set(json.loads(request.data))
+    filesExist = vmf_compiler_wrapper.get_game_files_not_in_directory(files, request.args.get('game'))
 
-    if entry is not None:
-        return entry, 200  
-    else:
-        return None, 404
+    return filesExist  
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
     return vmf_compiler_wrapper.get_config()
 
-if __name__ == "__main__":
-     app.run(host="127.0.0.1", port=7676, debug=True)
+def main():
+    if __name__ == "__main__":app.run(host="127.0.0.1", port=7676, debug=True)
+
+main()

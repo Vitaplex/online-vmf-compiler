@@ -19,28 +19,35 @@
         </div>
     </header>
     <main>
-        <div class="main-section" id="section-left">
-            <section class="section-top" id="section-left-top">
-                <span>Custom materials/models directories</span>
-            </section>
-            <section class="section-top" id="section-left-bottom">
-                <!-- Populated with <UserCustomFiles> elements via JS -->
-            </section>
-        </div>
-        <div class="main-section" id="section-right">
-            <section id="section-right-top">
-                <select id="select-game-vmf">
-                    <!-- Populated via JS -->
-                </select>
-                <label id="label-input-vmf" for="input-vmf">Select .vmf file</label>
-                <input hidden id="input-vmf" type="file" accept=".vmf">
-                <button class="inactive" id="button-compile-vmf"><img
-                        src="{{ url_for('static', filename='media/go.png') }}"><span>Compile map</span></button>
+        <fieldset class="main-section" id="section-left">
+            <legend>Custom assets</legend>
+        </fieldset>
+        <fieldset class="main-section" id="section-right">
+            <legend>Map and compile setup</legend>
+            <section id="section-right-top" class="flex fd-tb">
+                <div class="flex fd-lr">
+                    <select id="select-game-vmf">
+                        <!-- Populated via JS -->
+                    </select>
+                    <label id="label-input-vmf" for="input-vmf">Select .vmf file</label>
+                    <input hidden id="input-vmf" type="file" accept=".vmf">
+                    <button class="inactive" id="button-compile-vmf"><img src="{{ url_for('static', filename='media/go.png') }}"><span>Compile map</span></button>
+                    <input type="checkbox" id="ignore-missing-files">
+                    <label for="ignore-missing-files">Ignore missing files</label>
+                </div>
+                <div class="labeled flex fd-lr max">
+                    <span>Response Output</span>
+                    <textarea class="pre" id="response-output"
+                        placeholder="Any .vmf errors will appear here..."></textarea>
+                </div>
             </section>
             <section id="section-right-bottom">
-                <pre id="compiler-output">Compiler output</pre>
+                <div class="labeled flex fd-lr max">
+                    <span>Compiler output</span>
+                    <textarea class="pre" id="compiler-output" placeholder="VBSP/VVID/VRAD output goes here"></textarea>
+                </div>
             </section>
-        </div>
+        </fieldset>
     </main>
     <footer>
         <a href="https://guttespinat.no"></a>

@@ -1,52 +1,37 @@
 import * as api from "./api.js";
-import { getUserCustomFilesFromPage, addUserCustomFilesInputs } from "./UserCustomFileshelpers.js"
-import { enableButton, disableButton } from "./htmlhelpers.js";
+import { getUserCustomFilesFromPage, addUserCustomFilesInputs } from "./userCustomFilesHelpers.js"
+import { enableElement, disableElement } from "./htmlHelpers.js";
+import { resolveAssetsInVmfFile, resolveCustomFilesInVmf } from "./vmfParser.js";
 
-export async function handleCompileVmfClick(button, selectedGame, vmfFile) {
-    disableButton(button, "Fetching local game files...");
+export async function handleCompileVmfClick(button, outputArea, selectedGame, vmfFile) {
+    outputArea.classList.remove("error");
+
+    if (!vmfFile) alert("No .vmf file selected!");
+
+    disableElement(button, "Getting custom files...");
+    const userCustomFiles = getUserCustomFilesFromPage();
+
+    disableElement(button, "Resolving assets in .vmf file...");
+    const vmfFiles = resolveAssetsInVmfFile(vmfFile);
+    const filePathList = [...vmfFiles.materials, ...vmfFiles.models, ...vmfFiles.sounds];
+
+    disableElement(button, "Finding local files...");
+    const filesNotInLocalDir = await api.getExistingGameFiles(filePathList, selectedGame);
     
-    if (!vmfFile) alert("No .vmf file selected!")
-        const customFiles = getUserCustomFilesFromPage();
-    const localFiles = await api.getGameFiles(selectedGame);
+    if (filesNotInLocalDir.length > 0) {
+        console.warn(`Could not find these files in selected game directory for ${selectedGame} (including vpks)`, filesNotInLocalDir);
+    }
     
-    disableButton(button, "Resolving custom assets...");
-    const userCustomFiles = resolveCustomAssetsInVmfFile(vmfFile, customFiles);
-    let bundledFiles = getCustomFilesFromUserCustomFiles
-    if(customFiles){
-        
+    const missingFiles = resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir);
+    
+    if (missingFiles) {
+        console.warn("Missing files not provided by the user!", missingFiles);
+        outputArea.classList.add("error");
+        outputArea.value = `Missing assets!\nThese assets are missing locally, and is not provided by the user using the "Select custom files" option:\n\n` + Array.from(missingFiles).join("\n");
+    }
+    else {
+        disableElement(button, "Processing .vmf and custom files...");
+        return await api.compileVmfFile(userCustomFiles, selectedGame, vmfFile);
     }
 }
 
-
-function resolveCustomAssetsInVmfFile(vmfFile, customFiles) {
-    const entities = vmfFile.entity ?? [];
-    const solids = vmfFile.world?.solid ?? [];
-
-    const entityParameters = ["material", "model", "texture", "solid", "message"];
-    const solidParameters = ["material"];
-
-    let customAssets = {};
-
-    for (const entity of entities.concat(solids)) {
-        const material = entity.material;
-        const model = entity.model;
-        const texture = entity.texture;
-        const solid = entity.solid;
-        const message = entity.message;
-        
-        if (material) {
-
-        } else if (model) {
-
-        } else if (texture) {
-
-        } else if (solid) {
-
-        }
-    }
-}
-
-function getSolidMaterials(solid, customFiles) {
-    const materials = solid.side.map(sd => sd.material);
-    return materials;
-}

@@ -1,7 +1,8 @@
 import * as api from "./api.js"
 import { parseVmfFile } from "./vmfParser.js";
 import { handleCompileVmfClick } from "./vmfCompile.js";
-import { addUserCustomFilesInputs } from "./UserCustomFileshelpers.js";
+import { addUserCustomFilesInputs } from "./userCustomFilesHelpers.js";
+import { disableElement, enableElement } from "./htmlHelpers.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll("button").forEach(btn => {
@@ -17,13 +18,14 @@ const BUTTON_COMPILE_VMF = document.getElementById("button-compile-vmf");
 const LABEL_INPUT_VMF = document.getElementById("label-input-vmf");
 const INPUT_VMF = document.getElementById("input-vmf");
 const SELECT_GAME = document.getElementById("select-game-vmf");
+const RESPONSE_OUTPUT = document.getElementById("response-output");
 
 let VMF_FILE;
 
 async function setupGameSelect() {
     const localDirectory = await api.getConfiguration();
 
-    const options = [...localDirectory].map(ld => createOptionForGame(ld.name));
+    const options = [...localDirectory].map(ld => createOptionForGame(ld));
     const optgroup = document.createElement("optgroup");
     optgroup.label = "Select game";
 
@@ -34,10 +36,10 @@ async function setupGameSelect() {
     SELECT_GAME.appendChild(optgroup);
 }
 
-function createOptionForGame(name) {
+function createOptionForGame(configElement) {
     const option = document.createElement("option");
 
-    option.innerText = name;
+    option.innerText = configElement.name;
     return option;
 }
 
@@ -50,19 +52,31 @@ async function setupVmfFileInput() {
 
     INPUT_VMF.addEventListener("cancel", (event) => {
         LABEL_INPUT_VMF.innerHTML = vmfInputLabelOriginalText;
-        BUTTON_COMPILE_VMF.disabled = true;
-        BUTTON_COMPILE_VMF.classList.add("inactive")
+        disableElement(BUTTON_COMPILE_VMF);
+        enableElement(SELECT_GAME);
+        enableElement(INPUT_VMF);
+        enableElement(LABEL_INPUT_VMF);
+
     });
 
     BUTTON_COMPILE_VMF.addEventListener("click", async () => {
         const selectedGame = SELECT_GAME.options[SELECT_GAME.selectedIndex].innerText;
-        handleCompileVmfClick(BUTTON_COMPILE_VMF, selectedGame, VMF_FILE);
+        const originalText = BUTTON_COMPILE_VMF.querySelector("span")?.innerText;
+        disableElement(SELECT_GAME);
+        disableElement(INPUT_VMF);
+        disableElement(LABEL_INPUT_VMF);
+
+        await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, VMF_FILE);
+
+        enableElement(SELECT_GAME);
+        enableElement(INPUT_VMF);
+        enableElement(LABEL_INPUT_VMF);
+        enableElement(BUTTON_COMPILE_VMF, originalText);
     });
 }
 
 async function handleVmfUpload(event) {
-    BUTTON_COMPILE_VMF.classList.remove("inactive")
-    BUTTON_COMPILE_VMF.disabled = false;
+    enableElement(BUTTON_COMPILE_VMF);
 
     const file = event.target.files[0];
     LABEL_INPUT_VMF.innerHTML = `Loading .vmf file...`;

@@ -6,43 +6,59 @@ import time
 from helpers import *
 
 DIRECTORIES = get_configured_directories()
+VPK_FILES = get_vpk_files_for_all_directories(DIRECTORIES)
+
 class VmfCompilerWrapper:
     def __init__(self):
-        # TESTing
         log()
 
-    def get_materials_models_in_directory(self, name):
+    def get_game_files_not_in_directory(self, files, name):
         game = [dir for dir in DIRECTORIES if dir.get('name') == name][0]
+        name = game.get('name')
         path = game.get('path')
+        gameDir = game.get('assetDir')
 
-        vpks = get_vpk_files(path)
-        files = get_game_files(path)
+        vpk_for_game = [vpk for vpk  in VPK_FILES if vpk.get(name) != None][0].get(name)
+
+        path_game_dir = os.path.join(path,gameDir)
+        files_not_in_local_dirs = get_game_files(path_game_dir, vpk_for_game, files)
         
-        return files
+        return files_not_in_local_dirs
 
     def get_config(self):
         return DIRECTORIES
 
-def get_vpk_files(path):    
-    vpks = glob.glob(f"{path}/*/*_dir.vpk", recursive=True)
-    
-    print(len(vpks))
+def get_game_files(path, vpks, files):
+    used_existing_files = []
+    for file in files:
+        if "whitegaragedoor" in file:
+            pass
 
-    #TODO: read all _dir VPKs and return array of file paths for them aswell
+        normalized_filename = normalize_filename(file)
+        full_path = resolve_files(os.path.join(path, normalized_filename))
+        exists_in_folders = len(full_path) > 0
+        exists_in_vpk = file in vpks or normalized_filename in vpks
+        exists = exists_in_folders or exists_in_vpk
 
-def get_game_files(path):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(get_recursive_files,path, "materials"),
-            executor.submit(get_recursive_files, path, "models"),
-            executor.submit(get_recursive_files, path, "scripts"),
-            executor.submit(get_recursive_files, path, "sound")
-        ]
+        # We only care about the files that don't exist
+        if not exists:
+            used_existing_files.append(file)
 
-        return [future.result() for future in futures]
+    return used_existing_files
 
-def get_recursive_files(path, folder) -> set:
-    return set(glob.glob(f"{path}/*/{folder}/**", recursive=True))
+def resolve_files(path):
+    glob_path = os.path.join(path)
+    res1 = glob.glob(glob_path ,recursive=True) 
+
+    return res1
+
+def normalize_filename(file:str):
+    if file.startswith("materials"):
+        file += ".vmt" if not file.endswith(".vmt") else ""
+        file = file.lower()
+    elif file.startswith("models"):
+        file = file.lower()
+    return file
 
 def log():
     print()
