@@ -4,16 +4,17 @@ import glob
 import concurrent.futures
 import time
 from helpers import *
+from pathlib import Path
 
 DIRECTORIES = get_configured_directories()
 VPK_FILES = get_vpk_files_for_all_directories(DIRECTORIES)
 
-class VmfCompilerWrapper:
+class GameFileManager:
     def __init__(self):
         log()
 
     def get_game_files_not_in_directory(self, files, name):
-        game = [dir for dir in DIRECTORIES if dir.get('name') == name][0]
+        game = self.get_directory(name)
         name = game.get('name')
         path = game.get('path')
         gameDir = game.get('assetDir')
@@ -24,16 +25,36 @@ class VmfCompilerWrapper:
         files_not_in_local_dirs = get_game_files(path_game_dir, vpk_for_game, files)
         
         return files_not_in_local_dirs
+    
+    def upload_file(self, data, name, file_path):
+        game = self.get_directory(name)
+        game_path = game.get('path')
+        asset_dir = game.get('assetDir')
+        asset_path_relative = os.path.join(asset_dir, str(Path(file_path))) # Cast to Path and then str to make the slashes go the right way, since the file_path is different if on Windows
+        full_path = os.path.join(game_path, asset_path_relative)
+
+        print("Creating file:" + full_path)
+        # Create folders if not exist
+        Path(full_path).parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(full_path, 'wb') as f:
+                f.write(data)
+            return { "success": True, "path": asset_path_relative }
+        except Exception as ex:
+            print(ex)
+            return { "success": False, "error": ex }
 
     def get_config(self):
         return DIRECTORIES
 
+    def get_directory(self, name):
+        return [dir for dir in DIRECTORIES if dir.get('name') == name][0]
+
+    
+
 def get_game_files(path, vpks, files):
     used_existing_files = []
     for file in files:
-        if "whitegaragedoor" in file:
-            pass
-
         normalized_filename = normalize_filename(file)
         full_path = resolve_files(os.path.join(path, normalized_filename))
         exists_in_folders = len(full_path) > 0
@@ -70,3 +91,4 @@ def log():
         print("Name: " + name + "\nL Path: " + path)
 
     print()
+

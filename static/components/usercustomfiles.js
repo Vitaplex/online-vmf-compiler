@@ -93,8 +93,8 @@ class UserCustomFiles extends HTMLElement {
     }
 
     formatLabel() {
-        return `<code>/${this.folderName}</code>
-        <small><br>
+        return `<code>/${this.folderName}</code><br>
+        <small>
             🖼 Materials: ${this.materials.length}<br>
             🍶 Models: ${this.models.length}<br>
             📜 Scripts: ${this.scripts.length}<br>

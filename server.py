@@ -1,34 +1,43 @@
 import json
 
 from flask import Flask, jsonify, render_template, abort, redirect, request
-from vmf_compiler_wrapper import VmfCompilerWrapper
+from game_file_manager import GameFileManager
+from compile_job_manager import CompileJobManager
+
+# Dependencies
+game_file_manager = GameFileManager()
+compile_job_manager = CompileJobManager(game_file_manager)
 
 app = Flask(__name__)
 
-vmf_compiler_wrapper = VmfCompilerWrapper()
-
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("index.html") 
 
 @app.route("/api/compile", methods=["POST"])
 def compile_map():
-    content = request.data
-    print(content)
-    return ""
+    response = compile_job_manager.compile_map(request.data, request.args.get('game'))
+    return response
 
-@app.route("/api/files", methods=["POST"])
+@app.route("/api/resolve-files", methods=["POST"])
 def get_directory():
     files = set(json.loads(request.data))
-    filesExist = vmf_compiler_wrapper.get_game_files_not_in_directory(files, request.args.get('game'))
+    filesExist = game_file_manager.get_game_files_not_in_directory(files, request.args.get('game'))
 
     return filesExist  
 
+@app.route("/api/upload-file", methods=["POST"])
+def upload_file():
+    filesExist = game_file_manager.upload_file(request.data, request.args.get('game'), request.args.get('filePath'))
+    return filesExist
+
 @app.route("/api/config", methods=["GET"])
 def get_config():
-    return vmf_compiler_wrapper.get_config()
+    return game_file_manager.get_config()
 
 def main():
-    if __name__ == "__main__":app.run(host="127.0.0.1", port=7676, debug=True)
+    if __name__ == "__main__":
+        # app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
+        app.run(host="127.0.0.1", port=7676, debug=False)
 
 main()

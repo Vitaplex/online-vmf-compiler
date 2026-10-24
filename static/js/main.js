@@ -62,11 +62,16 @@ async function setupVmfFileInput() {
     BUTTON_COMPILE_VMF.addEventListener("click", async () => {
         const selectedGame = SELECT_GAME.options[SELECT_GAME.selectedIndex].innerText;
         const originalText = BUTTON_COMPILE_VMF.querySelector("span")?.innerText;
+        const ignoreMissingFiles = document.getElementById("ignore-missing-files")?.checked ?? false;
+
         disableElement(SELECT_GAME);
         disableElement(INPUT_VMF);
         disableElement(LABEL_INPUT_VMF);
-
-        await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, VMF_FILE);
+        try {
+            await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, ignoreMissingFiles, VMF_FILE);
+        } catch (error) {
+            alert(error);
+        }
 
         enableElement(SELECT_GAME);
         enableElement(INPUT_VMF);
@@ -80,20 +85,20 @@ async function handleVmfUpload(event) {
 
     const file = event.target.files[0];
     LABEL_INPUT_VMF.innerHTML = `Loading .vmf file...`;
+
     VMF_FILE = await readAndParseVmfFile(file);
     console.log(VMF_FILE);
 
     LABEL_INPUT_VMF.innerHTML = `<code>${file.name}</code>`;
 }
 
-
 function readAndParseVmfFile(fileHandle) {
-    return new Promise((resolve, reject) => {
+    return new Promise((fufill, reject) => {
         const reader = new FileReader();
 
         reader.onload = function (event) {
             const vmfFile = parseVmfFile(event.target.result);
-            resolve(vmfFile);
+            fufill({ object: vmfFile, stringrepresentation: event.target.result });
         };
 
         reader.onerror = function () {
