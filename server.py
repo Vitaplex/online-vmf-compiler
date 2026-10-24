@@ -16,8 +16,26 @@ def home():
 
 @app.route("/api/compile", methods=["POST"])
 def compile_map():
-    response = compile_job_manager.compile_map(request.data, request.args.get('game'))
-    return response
+    game = request.args.get('game')
+    fileName = request.args.get('fileName')
+    job_response = compile_job_manager.create_compile_job(request.data, game, fileName)
+    
+    if not job_response.get("success", True):
+        return job_response, 400
+    
+    map_file_path = job_response.get("mapFilePath")
+    compile_job = compile_job_manager.run_map_compile(map_file_path, game)
+    
+    return job_response, 200 if compile_job.get("success", False) else 400
+
+@app.route("/api/compile/<job_id>", methods=["GET"])
+def get_compile_job(job_id):
+    job_details = compile_job_manager.get_compile_job(job_id)
+    
+    if not job_details:
+        return { "success": False, "error": "Job not found" }, 404
+    
+    return job_details, 200
 
 @app.route("/api/resolve-files", methods=["POST"])
 def get_directory():

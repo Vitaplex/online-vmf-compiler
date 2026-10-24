@@ -12,8 +12,14 @@ export async function getConfiguration() {
     return await response.json();
 }
 
-export async function compileVmfFile(selectedGame, vmfFile){
-    const params = new URLSearchParams({ game: selectedGame });
+export async function getCompileJob(jobId) {
+    const response = await fetch("/api/compile/" + jobId);
+    await isOk(response);
+    return await response.text();
+}
+
+export async function compileVmfFile(selectedGame, vmfFile, fileName){
+    const params = new URLSearchParams({ game: selectedGame, fileName: fileName });
 
     const response = await sendFileAsync("api/compile?" + params, vmfFile);
     await isOk(response);

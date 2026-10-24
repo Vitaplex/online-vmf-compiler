@@ -2,16 +2,21 @@
     {
         "name": "Garry's Mod",
         "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod",
-        "compilerPath": ".\\bin\\win64",
+        "compilerPath": "bin\\win64",
         "vbsp": "vbsp.exe",
-        "vvis": "vvisplusplus.exe",
+        "vvis": "vvis.exe",
         "vrad": "vrad.exe",
-        "assetDir": "garrysmod"
+        "assetDir": "garrysmod",
+        "sourceVmfs": "mapsrc"
     },
     {
         "name": "Team Fortress 2",
         "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2",
-        "compilerPath": ".\\bin",
-        "assetDir": "tf2"
+        "compilerPath": "bin",
+        "vbsp": "vbsp.exe",
+        "vvis": "vvis.exe",
+        "vrad": "vrad.exe",
+        "assetDir": "tf2",
+        "sourceVmfs": "mapsrc"
     }
 ]

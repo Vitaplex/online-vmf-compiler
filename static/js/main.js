@@ -19,6 +19,7 @@ const LABEL_INPUT_VMF = document.getElementById("label-input-vmf");
 const INPUT_VMF = document.getElementById("input-vmf");
 const SELECT_GAME = document.getElementById("select-game-vmf");
 const RESPONSE_OUTPUT = document.getElementById("response-output");
+const COMPILER_OUTPUT = document.getElementById("compiler-output");
 
 let VMF_FILE;
 
@@ -56,28 +57,41 @@ async function setupVmfFileInput() {
         enableElement(SELECT_GAME);
         enableElement(INPUT_VMF);
         enableElement(LABEL_INPUT_VMF);
-
     });
 
     BUTTON_COMPILE_VMF.addEventListener("click", async () => {
         const selectedGame = SELECT_GAME.options[SELECT_GAME.selectedIndex].innerText;
         const originalText = BUTTON_COMPILE_VMF.querySelector("span")?.innerText;
         const ignoreMissingFiles = document.getElementById("ignore-missing-files")?.checked ?? false;
+        const fileName = LABEL_INPUT_VMF.innerText;
 
         disableElement(SELECT_GAME);
         disableElement(INPUT_VMF);
         disableElement(LABEL_INPUT_VMF);
         try {
-            await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, ignoreMissingFiles, VMF_FILE);
+            const compileResponse = await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, ignoreMissingFiles, VMF_FILE, fileName);
+            await tailCompileOutput(compileResponse);
         } catch (error) {
             alert(error);
         }
+
 
         enableElement(SELECT_GAME);
         enableElement(INPUT_VMF);
         enableElement(LABEL_INPUT_VMF);
         enableElement(BUTTON_COMPILE_VMF, originalText);
     });
+}
+
+async function tailCompileOutput(compileResponse) {
+    let finished = false;
+
+    while (!finished) {
+        const response = await api.getCompileJob(compileResponse.jobId);
+        COMPILER_OUTPUT.innerText = response;
+        if (response.success || response.error) finished = true;
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
 }
 
 async function handleVmfUpload(event) {

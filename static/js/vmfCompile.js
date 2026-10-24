@@ -3,7 +3,7 @@ import { getUserCustomFilesFromPage, addUserCustomFilesInputs } from "./userCust
 import { enableElement, disableElement } from "./htmlHelpers.js";
 import { resolveAssetsInVmfFile, resolveCustomFilesInVmf } from "./vmfParser.js";
 
-export async function handleCompileVmfClick(button, outputArea, selectedGame, ignoreMissingFiles, vmfFileObject) {
+export async function handleCompileVmfClick(button, outputArea, selectedGame, ignoreMissingFiles, vmfFileObject, fileName) {
     outputArea.classList.remove("error");
 
     if (!vmfFileObject) alert("No .vmf file selected!");
@@ -32,21 +32,18 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
     else {
         disableElement(button, "Processing .vmf and custom files...");
         const response = await uploadFiles(userCustomFiles, selectedGame);
-        const compileResponse = await sendVmfToBackend(selectedGame,vmfFileObject.stringrepresentation)
+        const errors = response.filter(e => !e.success);
+        return await sendVmfToBackend(selectedGame,vmfFileObject.stringrepresentation, fileName)
     }
 }
 
-async function sendVmfToBackend(selectedGame, vmfFile){
-    const response = await api.compileVmfFile(selectedGame, vmfFile);
-
-    await isOk(response);
-    return await response.json();
+async function sendVmfToBackend(selectedGame, vmfFile, fileName){
+    const response = await api.compileVmfFile(selectedGame, vmfFile, fileName);
+    return response;
 }
 
 async function uploadFiles(userCustomFiles, selectedGame) {
-
     const dedupUserCustomFiles = dedupBasedOnProperty(userCustomFiles, (dd) => dd.path);
-
     const uploads = dedupUserCustomFiles.map(async ucf => new Promise((fufill, reject) => {
         const reader = new FileReader();
 
