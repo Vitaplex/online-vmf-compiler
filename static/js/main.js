@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await setupDownloadButton();
     await setupVmfFileInput();
     await setupGameSelect();
+
+    setupScrollingForCompilerOutput();
 });
 
 const BUTTON_COMPILE_VMF = document.getElementById("button-compile-vmf");
@@ -24,15 +26,28 @@ const INPUT_VMF = document.getElementById("input-vmf");
 const SELECT_GAME = document.getElementById("select-game-vmf");
 const RESPONSE_OUTPUT = document.getElementById("response-output");
 const COMPILER_OUTPUT = document.getElementById("compiler-output");
-const PROGRESS_BAR = document.getElementById("progress-bar");
 const DOWNLOAD_BUTTON = document.getElementById("download-button");
-
 const COMPILE_JOB_BUTTON = document.getElementById("button-input-ticket");
 const COMPILE_JOB_INPUT = document.getElementById("input-ticket");
-
+const PROGRESS_BAR = {
+    progressBar: document.getElementById("progress-bar"),
+    vbspStatus: document.getElementById("progress-vbsp"),
+    vvisStatus: document.getElementById("progress-vvis"),
+    vradStatus: document.getElementById("progress-vrad"),
+    finishedStatus: document.getElementById("progress-finished")
+}
 
 let VMF_FILE;
 let JOB_ID;
+
+function setupScrollingForCompilerOutput() {
+    COMPILER_OUTPUT.addEventListener("scroll", () => {
+        const atBottom = COMPILER_OUTPUT.scrollHeight - COMPILER_OUTPUT.scrollTop === COMPILER_OUTPUT.clientHeight;
+        if (atBottom) {
+            COMPILER_OUTPUT.scrollTop = COMPILER_OUTPUT.scrollHeight;
+        }
+    });
+}
 
 async function setupGameSelect() {
     const localDirectory = await api.getConfiguration();
@@ -47,15 +62,15 @@ async function setupGameSelect() {
     SELECT_GAME.appendChild(optgroup);
 }
 
-async function setupCompileJobButton(){
+async function setupCompileJobButton() {
     COMPILE_JOB_BUTTON.addEventListener("click", async () => {
         const jobId = COMPILE_JOB_INPUT.value;
         JOB_ID = jobId;
-        getCompileJobStatus(jobId);
+        getCompileJobStatus(jobId, true);
     });
 }
 
-async function setupDownloadButton(){
+async function setupDownloadButton() {
     disableElement(DOWNLOAD_BUTTON);
     DOWNLOAD_BUTTON.addEventListener("click", async () => {
         api.getBsp(JOB_ID)
@@ -94,7 +109,7 @@ async function setupVmfFileInput() {
         disableElement(LABEL_INPUT_VMF);
         try {
             const compileResponse = await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, ignoreMissingFiles, VMF_FILE, fileName);
-            if(compileResponse) {
+            if (compileResponse) {
                 JOB_ID = compileResponse.jobId;
                 // 500ms wait for the compile process to start, and the log file to be written
                 setTimeout(async () => await getCompileJobStatus(JOB_ID), 500);
@@ -135,41 +150,49 @@ function readAndParseVmfFile(fileHandle) {
     });
 }
 
-async function getCompileJobStatus(jobId) {
+async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
     RESPONSE_OUTPUT.classList.remove("error");
-    if(!jobId) return;
+    if (!jobId) return;
 
     let finished = false;
     let response;
-    let errorCount;
+    let errorCount = 0;
 
     while (!finished) {
         try {
-            if (errorCount > 5) alert("Job has maybe not started!");
+            if (errorCount > 5) {
+                alert("Job has maybe not started!");
+                break;
+            }
 
             response = await api.getCompileJob(jobId);
-            if(response.success == false){
+
+            if (response.success == false) {
                 RESPONSE_OUTPUT.classList.add("error");
                 RESPONSE_OUTPUT.value = "No job with id " + jobId + " found";
                 break;
             }
+
             COMPILER_OUTPUT.value = response.log;
-            
+
             updateStatuses(response.statuses);
 
-            if(response.statuses.filter(rs => rs.status == "finished").length > 0)
-            {
+            if (fromCompileJobButton) {
+                break;
+            }
+
+            if (response.statuses.filter(rs => rs.status == "finished").length > 0) {
                 enableElement(SELECT_GAME);
                 enableElement(INPUT_VMF);
                 enableElement(LABEL_INPUT_VMF);
                 enableElement(BUTTON_COMPILE_VMF, BUTTON_COMPILE_VMF_ORIGINALTEXT);
-                
+
                 enableElement(DOWNLOAD_BUTTON);
 
                 break;
             }
 
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
         catch (err) {
             console.error("Log fetch error, it will probably be created soon...", err);
@@ -178,6 +201,45 @@ async function getCompileJobStatus(jobId) {
     }
 }
 
-function updateStatuses(statuses){
+function updateStatuses(statuses) {
+    const statusTypes = ["queued", "failed", "running", "finished"];
+    
+    enableElement(PROGRESS_BAR.progressBar);
 
+    console.log(statuses);
+
+    const vbsp = statuses.filter(rs => rs.status == "vbsp");
+    const vvis = statuses.filter(rs => rs.status == "vvis");
+    const vrad = statuses.filter(rs => rs.status == "vrad");
+    const finished = statuses.filter(rs => rs.status == "finished");
+
+    if (vbsp.length > 0 && PROGRESS_BAR.vbspStatus.classList.length == 1) {
+        setStatus(PROGRESS_BAR.vbspStatus, "running");
+        setStatus(PROGRESS_BAR.vvisStatus, "queued");
+        setStatus(PROGRESS_BAR.vradStatus, "queued");
+        setStatus(PROGRESS_BAR.finishedStatus, "queued");
+    }
+    if (vvis.length > 0 && PROGRESS_BAR.vvisStatus.classList.length == 1) {
+        setStatus(PROGRESS_BAR.vbspStatus, "finished");
+        setStatus(PROGRESS_BAR.vvisStatus, "running");
+        setStatus(PROGRESS_BAR.vradStatus, "queued");
+        setStatus(PROGRESS_BAR.finishedStatus, "queued");
+    }
+    if (vrad.length > 0 && PROGRESS_BAR.vradStatus.classList.length == 1) {
+        setStatus(PROGRESS_BAR.vbspStatus, "finished");
+        setStatus(PROGRESS_BAR.vvisStatus, "finished");
+        setStatus(PROGRESS_BAR.vradStatus, "running");
+        setStatus(PROGRESS_BAR.finishedStatus, "queued");
+    }
+    if (finished.length > 0) {
+        setStatus(PROGRESS_BAR.vbspStatus, "finished");
+        setStatus(PROGRESS_BAR.vvisStatus, "finished");
+        setStatus(PROGRESS_BAR.vradStatus, "finished");
+        setStatus(PROGRESS_BAR.finishedStatus, "finished");
+    }
+
+    function setStatus(element, status) {
+        element.classList.remove(...statusTypes);
+        element.classList.add(status);
+    }
 }
