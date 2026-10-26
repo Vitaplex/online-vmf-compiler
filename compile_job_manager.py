@@ -4,6 +4,8 @@ import subprocess
 import background
 from pathlib import Path
 from uuid import uuid4
+from datetime import datetime, timezone
+from helpers import index
 
 from game_file_manager import GameFileManager
 
@@ -40,19 +42,32 @@ class CompileJobManager:
         vvis_path = os.path.join(compiler_path, game_config.get('vvis'))
         vrad_path = os.path.join(compiler_path, game_config.get('vrad'))
         
-        compile_map(vbsp_path, vvis_path, vrad_path, map_file_path, name)
+        compile_map(vbsp_path, vvis_path, vrad_path, map_file_path)
         
         return { "success": True }
 
     def get_compile_job(self, job_id):
         job_files = self.get_files_for_job(job_id)
-        log_file = glob.glob(os.path.join(job_files, "*.log"))[0] if job_files else None
+        if not job_files: return None
+
+        log_file = index(0, glob.glob(os.path.join(job_files, "*.log")))
+
+        status_file = index(0, glob.glob(os.path.join(job_files, "status")))
        
-        if not log_file:
+        if not log_file or not status_file:
             return None
         
-        with open(log_file, 'r') as f:
-            return f.read()
+        statuses = parse_status_file(status_file)
+
+        with open(log_file, "r") as f:
+                return {"statuses": statuses, "log": f.read()}
+
+    def get_bsp(self, job_id):
+        job_files = self.get_files_for_job(job_id)
+
+        bsp_file = Path(index(0, glob.glob(os.path.join(job_files, "*.bsp"))))
+        return (str(bsp_file.parent), str(bsp_file.name))
+
 
     def get_files_for_job(self, job_id):
         configs = self.game_file_manager.get_config()
@@ -64,11 +79,28 @@ class CompileJobManager:
             if os.path.exists(mapsrc):
                 return mapsrc
 
-        
-@background.task
-def compile_map(vbsp_path, vvis_path, vrad_path, map_file_path, name):
+@background.task        
+def compile_map(vbsp_path, vvis_path, vrad_path, map_file_path):
+    write_status_file(map_file_path, "vbsp")
     subprocess.run([vbsp_path, map_file_path])
 
     bsp = os.path.splitext(map_file_path)[0] + ".bsp"
+    write_status_file(map_file_path, "vvis")
     subprocess.run([vvis_path, bsp])
+    write_status_file(map_file_path, "vrad")
     subprocess.run([vrad_path, bsp])
+    write_status_file(map_file_path, "finished")
+
+# The status file is used to keep track of the current status of the compile job
+def write_status_file(map_file_path, status):
+    with open(os.path.join(Path(map_file_path).parent, "status"), "a+") as f:
+        f.write(datetime.now(timezone.utc).strftime("%d/%m/%YT%H:%M:%S%z") + "|" + status + "\n")
+
+def parse_status_file(status_file):
+    with open(status_file, "r") as s:
+        content = s.readlines()
+        return [get_status_line(line) for line in content if line is not None]
+
+def get_status_line(line:str):
+    parts = line.split("|")
+    return {"time": datetime.strptime(parts[0],"%d/%m/%YT%H:%M:%S%z"), "status":parts[1].strip("\n")}

@@ -28,25 +28,32 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
         console.warn("Missing files not provided by the user!", missingFiles);
         outputArea.classList.add("error");
         outputArea.value = `Missing assets!\nThese assets are missing locally, and is not provided by the user using the "Select custom files" option:\n\n` + Array.from(missingFiles).join("\n");
+        return;
     }
-    else {
-        disableElement(button, "Processing .vmf and custom files...");
-        const response = await uploadFiles(userCustomFiles, selectedGame);
+    else if (missingFiles) {
+        disableElement(button, "Uploading custom files...");
+        const response = await uploadFiles(missingFiles, selectedGame);
         const errors = response.filter(e => !e.success);
-        return await sendVmfToBackend(selectedGame,vmfFileObject.stringrepresentation, fileName)
+        if (errors) errors.forEach(err => { outputArea.value += "Error uploading file: " + JSON.stringify(err.path) + "\n" });
     }
+
+    disableElement(button, "Compiling vmf-file...");
+    return await sendVmfToBackend(selectedGame, vmfFileObject.stringrepresentation, fileName)
 }
 
-async function sendVmfToBackend(selectedGame, vmfFile, fileName){
+async function sendVmfToBackend(selectedGame, vmfFile, fileName) {
     const response = await api.compileVmfFile(selectedGame, vmfFile, fileName);
     return response;
 }
 
 async function uploadFiles(userCustomFiles, selectedGame) {
+    // Remove duplicate paths
     const dedupUserCustomFiles = dedupBasedOnProperty(userCustomFiles, (dd) => dd.path);
+
+    // Create an array of tasks that each upload one of the files
+    // TODO: Maybe add batching to avoid spamming HTTP requests? 
     const uploads = dedupUserCustomFiles.map(async ucf => new Promise((fufill, reject) => {
         const reader = new FileReader();
-
         reader.onloadstart = (event) => { console.log("START", event) };
         reader.onprogress = (event) => { console.log("PROGRESS", event) };
         reader.onloadend = (event) => { console.log("END", event) };

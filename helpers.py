@@ -27,3 +27,7 @@ def get_vpk_files(path):
         for vpk_file in vpk_files:
             return_files.add(vpk_file)
     return return_files
+
+def index(index, array):
+    if len(array) >= index:
+        return array[index]

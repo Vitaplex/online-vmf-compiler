@@ -34,17 +34,18 @@
                     <button class="inactive" id="button-compile-vmf"><img src="{{ url_for('static', filename='media/go.png') }}"><span>Compile map</span></button>
                     <input type="checkbox" id="ignore-missing-files">
                     <label for="ignore-missing-files">Ignore missing files</label>
+                    <button class="inactive" id="download-button">Download</button>
                 </div>
                 <div class="labeled flex fd-lr max">
-                    <span>Response Output</span>
+                    <span>Custom Files Output</span>
                     <textarea class="pre" id="response-output"
-                        placeholder="Any .vmf errors will appear here..."></textarea>
+                        placeholder="Any missing file errors will appear here..."></textarea>
                 </div>
             </section>
             <section id="section-right-bottom">
                 <div class="labeled flex fd-lr max">
                     <span>Compiler output</span>
-                    <textarea class="pre" id="compiler-output" placeholder="VBSP/VVID/VRAD output goes here"></textarea>
+                    <textarea class="pre" id="compiler-output" placeholder="VBSP/VVID/VRAD output goes here" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
                 </div>
             </section>
         </fieldset>

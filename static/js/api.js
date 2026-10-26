@@ -14,8 +14,16 @@ export async function getConfiguration() {
 
 export async function getCompileJob(jobId) {
     const response = await fetch("/api/compile/" + jobId);
-    await isOk(response);
-    return await response.text();
+    return await response.json();
+}
+
+export async function getBsp(jobId) {
+    window.open("/api/bsp/" + jobId,"_blank");
+}
+
+export async function getJob(jobId) {
+    const response = await fetch("/api/compile/" + jobId);
+    return await response.json();
 }
 
 export async function compileVmfFile(selectedGame, vmfFile, fileName){

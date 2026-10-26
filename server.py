@@ -1,6 +1,6 @@
 import json
 
-from flask import Flask, jsonify, render_template, abort, redirect, request
+from flask import Flask, jsonify, render_template, abort, redirect, request, send_from_directory
 from game_file_manager import GameFileManager
 from compile_job_manager import CompileJobManager
 
@@ -27,6 +27,12 @@ def compile_map():
     compile_job = compile_job_manager.run_map_compile(map_file_path, game)
     
     return job_response, 200 if compile_job.get("success", False) else 400
+
+@app.route("/api/bsp/<job_id>", methods=["GET"])
+def get_bsp(job_id):
+    bsp_path, bsp_name = compile_job_manager.get_bsp(job_id)
+    return send_from_directory(bsp_path, bsp_name, as_attachment=True)
+
 
 @app.route("/api/compile/<job_id>", methods=["GET"])
 def get_compile_job(job_id):

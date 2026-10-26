@@ -247,6 +247,15 @@ button.inactive {
     transition: height 0.35s ease;
 }
 
+#compiler-output:focus {
+    height: 286px;
+    transition: height 0.35s ease;
+}
+
+#compiler-output {
+    transition: height 0.35s ease;
+}
+
 @media (max-width: 991.98px) {
     #header-content-right {
         margin-inline-end: 1em;
