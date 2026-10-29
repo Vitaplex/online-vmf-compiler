@@ -46,6 +46,9 @@ class CompileJobManager:
         
         return { "success": True }
 
+    def cancel_compile_job(self, job_id):
+        ...
+
     def get_compile_job(self, job_id):
         job_files = self.get_files_for_job(job_id)
         if not job_files: return None
