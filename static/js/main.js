@@ -29,6 +29,7 @@ const COMPILER_OUTPUT = document.getElementById("compiler-output");
 const DOWNLOAD_BUTTON = document.getElementById("download-button");
 const COMPILE_JOB_BUTTON = document.getElementById("button-input-ticket");
 const COMPILE_JOB_INPUT = document.getElementById("input-ticket");
+const CANCEL_COMPILE_JOB = document.getElementById("button-cancel-compile");
 const PROGRESS_BAR = {
     progressBar: document.getElementById("progress-bar"),
     vbspStatus: document.getElementById("progress-vbsp"),
@@ -67,6 +68,14 @@ async function setupCompileJobButton() {
         const jobId = COMPILE_JOB_INPUT.value;
         JOB_ID = jobId;
         getCompileJobStatus(jobId, true);
+    });
+}
+
+async function setupCancelCompileButton() {
+    CANCEL_COMPILE_JOB.addEventListener("click", async () => {
+        const jobId = COMPILE_JOB_INPUT.value;
+        JOB_ID = jobId;
+        const response = api.cancelCompileJob(jobId);
     });
 }
 
@@ -170,9 +179,8 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
                 alert("Job has maybe not started!");
                 break;
             }
-
             response = await api.getCompileJob(jobId);
-
+            
             if (response.success == false) {
                 COMPILER_OUTPUT.value = "";
                 RESPONSE_OUTPUT.classList.add("error");
@@ -195,8 +203,9 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
                 enableElement(INPUT_VMF);
                 enableElement(LABEL_INPUT_VMF);
                 enableElement(BUTTON_COMPILE_VMF, BUTTON_COMPILE_VMF_ORIGINALTEXT);
-
                 enableElement(DOWNLOAD_BUTTON);
+
+                disableElement(CANCEL_COMPILE_JOB);
 
                 break;
             }
@@ -223,17 +232,20 @@ function updateStatuses(statuses) {
     const finished = statuses.filter(rs => rs.status == "finished");
 
     if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
+    if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "running");
         setStatus(PROGRESS_BAR.vvisStatus, "queued");
         setStatus(PROGRESS_BAR.vradStatus, "queued");
         setStatus(PROGRESS_BAR.finishedStatus, "queued");
     }
     if (vvis.length > 0 && !PROGRESS_BAR.vvisStatus.classList.contains("finished")) {
+    if (vvis.length > 0 && !PROGRESS_BAR.vvisStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "finished");
         setStatus(PROGRESS_BAR.vvisStatus, "running");
         setStatus(PROGRESS_BAR.vradStatus, "queued");
         setStatus(PROGRESS_BAR.finishedStatus, "queued");
     }
+    if (vrad.length > 0 && !PROGRESS_BAR.vradStatus.classList.contains("finished")) {
     if (vrad.length > 0 && !PROGRESS_BAR.vradStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "finished");
         setStatus(PROGRESS_BAR.vvisStatus, "finished");

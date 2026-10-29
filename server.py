@@ -43,6 +43,15 @@ def get_compile_job(job_id):
     
     return job_details, 200
 
+@app.route("/api/compile/<job_id>", methods=["DELETE"])
+def cancel_compile_job(job_id):
+    job_details = compile_job_manager.cancel_compile_job(job_id)
+    
+    if not job_details:
+        return { "success": False, "error": "Job not found" }, 404
+    
+    return job_details, 200
+
 @app.route("/api/resolve-files", methods=["POST"])
 def get_directory():
     files = set(json.loads(request.data))

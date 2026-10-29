@@ -7,6 +7,9 @@
     --header-color: rgb(54, 50, 66);
     --body-color: rgb(27, 18, 36);
     --button-text: white;
+    --button-cancel: rgb(165, 68, 68);
+    --button-cancel-hover: rgb(192, 95, 95);
+    --button-cancel-click: rgb(131, 52, 52);
     --button-active: rgb(56, 144, 112);
     --button-hover: rgb(104, 188, 157);
     --button-click: rgb(52, 88, 75);
@@ -83,7 +86,7 @@ input {
 }
 
 .slim {
-    height: 2.5em;
+    height: 2em;
 }
 
 pre, textarea.pre {
@@ -138,6 +141,7 @@ button img {
 
 button.inactive {
     background-color: var(--button-inactive) !important;
+    pointer-events: none;
 }
 
 #header-content-right {

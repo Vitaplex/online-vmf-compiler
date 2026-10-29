@@ -17,8 +17,13 @@ export async function getCompileJob(jobId) {
     return await response.json();
 }
 
+export async function cancelCompileJob(jobId) {
+    const response = await fetch("/api/compile/" + jobId, { method: "DELETE" });
+    return await response.json();
+}
+
 export async function getBsp(jobId) {
-    window.open("/api/bsp/" + jobId,"_blank");
+    window.open("/api/bsp/" + jobId, "_blank");
 }
 
 export async function getJob(jobId) {
@@ -26,7 +31,7 @@ export async function getJob(jobId) {
     return await response.json();
 }
 
-export async function compileVmfFile(selectedGame, vmfFile, fileName){
+export async function compileVmfFile(selectedGame, vmfFile, fileName) {
     const params = new URLSearchParams({ game: selectedGame, fileName: fileName });
 
     const response = await sendFileAsync("api/compile?" + params, vmfFile);
@@ -34,7 +39,7 @@ export async function compileVmfFile(selectedGame, vmfFile, fileName){
     return await response.json();
 }
 
-export async function uploadFileForGame(fileData, path, selectedGame){
+export async function uploadFileForGame(fileData, path, selectedGame) {
     const params = new URLSearchParams({ game: selectedGame, filePath: path });
     const response = await sendFileAsync("api/upload-file?" + params, fileData);
     await isOk(response);
