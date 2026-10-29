@@ -232,20 +232,17 @@ function updateStatuses(statuses) {
     const finished = statuses.filter(rs => rs.status == "finished");
 
     if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
-    if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "running");
         setStatus(PROGRESS_BAR.vvisStatus, "queued");
         setStatus(PROGRESS_BAR.vradStatus, "queued");
         setStatus(PROGRESS_BAR.finishedStatus, "queued");
     }
     if (vvis.length > 0 && !PROGRESS_BAR.vvisStatus.classList.contains("finished")) {
-    if (vvis.length > 0 && !PROGRESS_BAR.vvisStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "finished");
         setStatus(PROGRESS_BAR.vvisStatus, "running");
         setStatus(PROGRESS_BAR.vradStatus, "queued");
         setStatus(PROGRESS_BAR.finishedStatus, "queued");
     }
-    if (vrad.length > 0 && !PROGRESS_BAR.vradStatus.classList.contains("finished")) {
     if (vrad.length > 0 && !PROGRESS_BAR.vradStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "finished");
         setStatus(PROGRESS_BAR.vvisStatus, "finished");
