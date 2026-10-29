@@ -48,7 +48,7 @@ export function parseVmfFile(text) {
     return parseBlock();
 }
 
-export function resolveAssetsInVmfFile(vmfFile, customFiles) {
+export function resolveAssetsInVmfFile(vmfFile) {
     const entities = vmfFile.entity ?? [];
     const solids = vmfFile.world?.solid ?? [];
 
@@ -96,8 +96,8 @@ export function resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir) {
     const userCustomFilesSet = new Set(userCustomFiles.map(ucf => ucf.path));
     const fileNotInLocalDirSet = new Set(filesNotInLocalDir);
 
-    const difference = fileNotInLocalDirSet.difference(userCustomFilesSet);
-    return difference.size > 0 ? difference : null;
+    const difference = new Set([...fileNotInLocalDirSet].filter(x => !userCustomFilesSet.has(x)));
+    return difference.size > 0 ? difference : filesNotInLocalDir;
 }
 
 function getFormattedWebkitPath(fileObject) {

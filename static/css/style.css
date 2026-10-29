@@ -222,7 +222,8 @@ button.inactive {
 }
 .progress-item.running {
     background-color: var(--running01);
-    color:var(--body-color)
+    color:var(--body-colorparse
+    )
 }
 .progress-item.finished {
     background-color: var(--ok01);

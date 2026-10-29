@@ -41,12 +41,12 @@ let VMF_FILE;
 let JOB_ID;
 
 function setupScrollingForCompilerOutput() {
-    COMPILER_OUTPUT.addEventListener("scroll", () => {
-        const atBottom = COMPILER_OUTPUT.scrollHeight - COMPILER_OUTPUT.scrollTop === COMPILER_OUTPUT.clientHeight;
+    setInterval(() => {
+        const atBottom = COMPILER_OUTPUT.scrollHeight - COMPILER_OUTPUT.scrollTop >= COMPILER_OUTPUT.clientHeight;
         if (atBottom) {
             COMPILER_OUTPUT.scrollTop = COMPILER_OUTPUT.scrollHeight;
         }
-    });
+    }, 100);
 }
 
 async function setupGameSelect() {
@@ -113,10 +113,16 @@ async function setupVmfFileInput() {
                 JOB_ID = compileResponse.jobId;
                 // 500ms wait for the compile process to start, and the log file to be written
                 setTimeout(async () => await getCompileJobStatus(JOB_ID), 500);
+                return;
             }
         } catch (error) {
             alert(error);
         }
+
+        enableElement(SELECT_GAME);
+        enableElement(BUTTON_COMPILE_VMF);
+        enableElement(INPUT_VMF);
+        enableElement(LABEL_INPUT_VMF);
     });
 }
 
@@ -168,20 +174,23 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
             response = await api.getCompileJob(jobId);
 
             if (response.success == false) {
+                COMPILER_OUTPUT.value = "";
                 RESPONSE_OUTPUT.classList.add("error");
                 RESPONSE_OUTPUT.value = "No job with id " + jobId + " found";
                 break;
             }
 
-            COMPILER_OUTPUT.value = response.log;
+            COMPILER_OUTPUT.value = response.log.trim();
 
             updateStatuses(response.statuses);
 
-            if (fromCompileJobButton) {
+            finished = response.statuses.filter(rs => rs.status == "finished").length > 0;
+
+            if (fromCompileJobButton && finished) {
                 break;
             }
-
-            if (response.statuses.filter(rs => rs.status == "finished").length > 0) {
+            
+            if (finished) {
                 enableElement(SELECT_GAME);
                 enableElement(INPUT_VMF);
                 enableElement(LABEL_INPUT_VMF);
@@ -213,19 +222,19 @@ function updateStatuses(statuses) {
     const vrad = statuses.filter(rs => rs.status == "vrad");
     const finished = statuses.filter(rs => rs.status == "finished");
 
-    if (vbsp.length > 0 && PROGRESS_BAR.vbspStatus.classList.length == 1) {
+    if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "running");
         setStatus(PROGRESS_BAR.vvisStatus, "queued");
         setStatus(PROGRESS_BAR.vradStatus, "queued");
         setStatus(PROGRESS_BAR.finishedStatus, "queued");
     }
-    if (vvis.length > 0 && PROGRESS_BAR.vvisStatus.classList.length == 1) {
+    if (vvis.length > 0 && !PROGRESS_BAR.vvisStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "finished");
         setStatus(PROGRESS_BAR.vvisStatus, "running");
         setStatus(PROGRESS_BAR.vradStatus, "queued");
         setStatus(PROGRESS_BAR.finishedStatus, "queued");
     }
-    if (vrad.length > 0 && PROGRESS_BAR.vradStatus.classList.length == 1) {
+    if (vrad.length > 0 && !PROGRESS_BAR.vradStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "finished");
         setStatus(PROGRESS_BAR.vvisStatus, "finished");
         setStatus(PROGRESS_BAR.vradStatus, "running");
