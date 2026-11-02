@@ -1,24 +1,26 @@
+const BACKEND_URL="http://localhost:7676";
+
 export async function getExistingGameFiles(filePaths, game) {
     const params = new URLSearchParams({ game: game });
 
-    const response = await sendRequestAsync("POST", "api/resolve-files?" + params, filePaths);
+    const response = await sendRequestAsync("POST", "/api/resolve-files?" + params, filePaths);
     await isOk(response);
     return await response.json();
 }
 
 export async function getConfiguration() {
-    const response = await fetch("/api/config");
+    const response = await fetch(BACKEND_URL + "/api/config");
     await isOk(response)
     return await response.json();
 }
 
 export async function getCompileJob(jobId) {
-    const response = await fetch("/api/compile/" + jobId);
+    const response = await fetch(BACKEND_URL + "/api/compile/" + jobId);
     return await response.json();
 }
 
-export async function cancelCompileJob(jobId) {
-    const response = await fetch("/api/compile/" + jobId, { method: "DELETE" });
+export async function  cancelCompileJob(jobId) {
+    const response = await fetch(BACKEND_URL + "/api/compile/" + jobId, { method: "DELETE" });
     return await response.json();
 }
 
@@ -27,21 +29,22 @@ export async function getBsp(jobId) {
 }
 
 export async function getJob(jobId) {
-    const response = await fetch("/api/compile/" + jobId);
+    const response = await fetch(BACKEND_URL + "/api/compile/" + jobId);
+    await isOk(response);
     return await response.json();
 }
 
 export async function compileVmfFile(selectedGame, vmfFile, fileName) {
     const params = new URLSearchParams({ game: selectedGame, fileName: fileName });
 
-    const response = await sendFileAsync("api/compile?" + params, vmfFile);
+    const response = await sendFileAsync("/api/compile?" + params, vmfFile);
     await isOk(response);
     return await response.json();
 }
 
 export async function uploadFileForGame(fileData, path, selectedGame) {
     const params = new URLSearchParams({ game: selectedGame, filePath: path });
-    const response = await sendFileAsync("api/upload-file?" + params, fileData);
+    const response = await sendFileAsync("/api/upload-file?" + params, fileData);
     await isOk(response);
     return await response.json();
 }
@@ -55,7 +58,7 @@ async function isOk(response) {
 }
 
 async function sendRequestAsync(method, url, body) {
-    return await fetch(url, {
+    return await fetch(BACKEND_URL + url, {
         method: method,
         body: JSON.stringify(body),
         headers: method == "GET" ? null : {
@@ -65,7 +68,7 @@ async function sendRequestAsync(method, url, body) {
 }
 
 async function sendFileAsync(url, file) {
-    return await fetch(url, {
+    return await fetch(BACKEND_URL + url, {
         method: "POST",
         body: file,
         headers: {

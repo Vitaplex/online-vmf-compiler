@@ -10,26 +10,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         btn.addEventListener("mouseup", () => { btn.style = "background-color: var(--button-active);" });
     });
     addUserCustomFilesInputs();
+    await setupCancelCompileButton();
     await setupCompileJobButton();
     await setupDownloadButton();
     await setupVmfFileInput();
     await setupGameSelect();
-
     setupScrollingForCompilerOutput();
+
+    uiState_InitialState();
 });
 
 const BUTTON_COMPILE_VMF = document.getElementById("button-compile-vmf");
 const BUTTON_COMPILE_VMF_ORIGINALTEXT = BUTTON_COMPILE_VMF.querySelector("span")?.innerText;
-
+const BUTTON_DOWNLOAD = document.getElementById("download-button");
+const BUTTON_CANCEL_COMPILE_JOB = document.getElementById("button-cancel-compile");
+const BUTTON_GET_COMPILE_JOB = document.getElementById("button-input-ticket");
+const INPUT_GET_COMPILE_JOB = document.getElementById("input-ticket");
 const LABEL_INPUT_VMF = document.getElementById("label-input-vmf");
 const INPUT_VMF = document.getElementById("input-vmf");
 const SELECT_GAME = document.getElementById("select-game-vmf");
 const RESPONSE_OUTPUT = document.getElementById("response-output");
 const COMPILER_OUTPUT = document.getElementById("compiler-output");
-const DOWNLOAD_BUTTON = document.getElementById("download-button");
-const COMPILE_JOB_BUTTON = document.getElementById("button-input-ticket");
-const COMPILE_JOB_INPUT = document.getElementById("input-ticket");
-const CANCEL_COMPILE_JOB = document.getElementById("button-cancel-compile");
 const PROGRESS_BAR = {
     progressBar: document.getElementById("progress-bar"),
     vbspStatus: document.getElementById("progress-vbsp"),
@@ -64,24 +65,24 @@ async function setupGameSelect() {
 }
 
 async function setupCompileJobButton() {
-    COMPILE_JOB_BUTTON.addEventListener("click", async () => {
-        const jobId = COMPILE_JOB_INPUT.value;
+    BUTTON_GET_COMPILE_JOB.addEventListener("click", async () => {
+        const jobId = INPUT_GET_COMPILE_JOB.value;
         JOB_ID = jobId;
         getCompileJobStatus(jobId, true);
     });
 }
 
 async function setupCancelCompileButton() {
-    CANCEL_COMPILE_JOB.addEventListener("click", async () => {
-        const jobId = COMPILE_JOB_INPUT.value;
-        JOB_ID = jobId;
-        const response = api.cancelCompileJob(jobId);
+    BUTTON_CANCEL_COMPILE_JOB.addEventListener("click", async () => {
+        // disableElement(BUTTON_CANCEL_COMPILE_JOB,"Cancelling");
+        const response = api.cancelCompileJob(JOB_ID);
+        console.log(response);
     });
 }
 
 async function setupDownloadButton() {
-    disableElement(DOWNLOAD_BUTTON);
-    DOWNLOAD_BUTTON.addEventListener("click", async () => {
+    disableElement(BUTTON_DOWNLOAD);
+    BUTTON_DOWNLOAD.addEventListener("click", async () => {
         api.getBsp(JOB_ID)
     });
 }
@@ -102,10 +103,6 @@ async function setupVmfFileInput() {
 
     INPUT_VMF.addEventListener("cancel", (event) => {
         LABEL_INPUT_VMF.innerHTML = vmfInputLabelOriginalText;
-        disableElement(BUTTON_COMPILE_VMF);
-        enableElement(SELECT_GAME);
-        enableElement(INPUT_VMF);
-        enableElement(LABEL_INPUT_VMF);
     });
 
     BUTTON_COMPILE_VMF.addEventListener("click", async () => {
@@ -113,9 +110,7 @@ async function setupVmfFileInput() {
         const ignoreMissingFiles = document.getElementById("ignore-missing-files")?.checked ?? false;
         const fileName = LABEL_INPUT_VMF.innerText;
 
-        disableElement(SELECT_GAME);
-        disableElement(INPUT_VMF);
-        disableElement(LABEL_INPUT_VMF);
+        uiState_CompilingMap();
         try {
             const compileResponse = await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, ignoreMissingFiles, VMF_FILE, fileName);
             if (compileResponse) {
@@ -128,10 +123,7 @@ async function setupVmfFileInput() {
             alert(error);
         }
 
-        enableElement(SELECT_GAME);
-        enableElement(BUTTON_COMPILE_VMF);
-        enableElement(INPUT_VMF);
-        enableElement(LABEL_INPUT_VMF);
+        uiState_InitialState();
     });
 }
 
@@ -172,6 +164,8 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
     let finished = false;
     let response;
     let errorCount = 0;
+    
+    uiState_CompilingMap();
 
     while (!finished) {
         try {
@@ -180,7 +174,7 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
                 break;
             }
             response = await api.getCompileJob(jobId);
-            
+
             if (response.success == false) {
                 COMPILER_OUTPUT.value = "";
                 RESPONSE_OUTPUT.classList.add("error");
@@ -195,18 +189,12 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
             finished = response.statuses.filter(rs => rs.status == "finished").length > 0;
 
             if (fromCompileJobButton && finished) {
+                uiState_GetFinishedCompileJob();
                 break;
             }
-            
+
             if (finished) {
-                enableElement(SELECT_GAME);
-                enableElement(INPUT_VMF);
-                enableElement(LABEL_INPUT_VMF);
-                enableElement(BUTTON_COMPILE_VMF, BUTTON_COMPILE_VMF_ORIGINALTEXT);
-                enableElement(DOWNLOAD_BUTTON);
-
-                disableElement(CANCEL_COMPILE_JOB);
-
+                uiState_CompileJobFinished();
                 break;
             }
 
@@ -221,7 +209,7 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
 
 function updateStatuses(statuses) {
     const statusTypes = ["queued", "failed", "running", "finished"];
-    
+
     enableElement(PROGRESS_BAR.progressBar);
 
     console.log(statuses);
@@ -260,4 +248,34 @@ function updateStatuses(statuses) {
         element.classList.remove(...statusTypes);
         element.classList.add(status);
     }
+}
+
+function uiState_InitialState() {
+    uiState_CompileJobFinished();
+    disableElement(BUTTON_COMPILE_VMF);
+    disableElement(BUTTON_DOWNLOAD);
+
+}
+
+function uiState_GetFinishedCompileJob() {
+    uiState_CompileJobFinished();
+    enableElement(BUTTON_DOWNLOAD);
+    disableElement(BUTTON_COMPILE_VMF);
+}
+
+function uiState_CompileJobFinished() {
+    enableElement(SELECT_GAME);
+    enableElement(INPUT_VMF);
+    enableElement(LABEL_INPUT_VMF);
+    enableElement(BUTTON_COMPILE_VMF, BUTTON_COMPILE_VMF_ORIGINALTEXT);
+    enableElement(BUTTON_DOWNLOAD);
+    disableElement(BUTTON_CANCEL_COMPILE_JOB);
+}
+
+function uiState_CompilingMap() {
+    disableElement(SELECT_GAME);
+    disableElement(INPUT_VMF);
+    disableElement(LABEL_INPUT_VMF);
+    disableElement(BUTTON_DOWNLOAD);
+    enableElement(BUTTON_CANCEL_COMPILE_JOB);
 }

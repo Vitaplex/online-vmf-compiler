@@ -22,9 +22,9 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
         console.warn(`Could not find these files in selected game directory for ${selectedGame} (including vpks)`, filesNotInLocalDir);
     }
 
-    const missingFiles = resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir);
+    const missingFiles = resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir) ?? [];
 
-    if (missingFiles && !ignoreMissingFiles) {
+    if (missingFiles.length > 0 && !ignoreMissingFiles) {
         console.warn("Missing files not provided by the user!", missingFiles);
         outputArea.classList.add("error");
         outputArea.value = `Missing assets! (${missingFiles.size})\nThese assets are missing locally, and is not provided by the user using the "Select custom files" option:\n\n` + Array.from(missingFiles).join("\n");

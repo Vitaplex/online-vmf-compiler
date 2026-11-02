@@ -5,7 +5,7 @@ import os
 import vpk
 
 def get_configured_directories():
-    with open("./static/config.json", "r") as config_file:
+    with open("./config.json", "r") as config_file:
         content = config_file.read()
         config = json.loads(content)
         return config
@@ -31,3 +31,8 @@ def get_vpk_files(path):
 def index(index, array):
     if len(array) >= index:
         return array[index]
+
+def get_globby_file_path(path, name):
+    globbed_path = index(0, glob.glob(os.path.join(path, name)))
+    with open(globbed_path, "r") as f:
+        return {"path": globbed_path, "content": f.read()}
