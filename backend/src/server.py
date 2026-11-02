@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from game_file_manager import GameFileManager
-from backend.src.compile_job_service import CompileJobService
+from compile_job_service import CompileJobService
 
 
 # Dependencies
