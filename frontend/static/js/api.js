@@ -8,18 +8,18 @@ export async function getExistingGameFiles(filePaths, game) {
 }
 
 export async function getConfiguration() {
-    const response = await fetch(BACKEND_URL + "/api/config");
+    const response = await fetch("/api/config");
     await isOk(response)
     return await response.json();
 }
 
 export async function getCompileJob(jobId) {
-    const response = await fetch(BACKEND_URL + "/api/compile/" + jobId);
+    const response = await fetch("/api/compile/" + jobId);
     return await response.json();
 }
 
 export async function  cancelCompileJob(jobId) {
-    const response = await fetch(BACKEND_URL + "/api/compile/" + jobId, { method: "DELETE" });
+    const response = await fetch("/api/compile/" + jobId, { method: "DELETE" });
     return await response.json();
 }
 
@@ -28,7 +28,7 @@ export async function getBsp(jobId) {
 }
 
 export async function getJob(jobId) {
-    const response = await fetch(BACKEND_URL + "/api/compile/" + jobId);
+    const response = await fetch("/api/compile/" + jobId);
     await isOk(response);
     return await response.json();
 }
@@ -57,7 +57,7 @@ async function isOk(response) {
 }
 
 async function sendRequestAsync(method, url, body) {
-    return await fetch(BACKEND_URL + url, {
+    return await fetch(url, {
         method: method,
         body: JSON.stringify(body),
         headers: method == "GET" ? null : {
@@ -67,7 +67,7 @@ async function sendRequestAsync(method, url, body) {
 }
 
 async function sendFileAsync(url, file) {
-    return await fetch(BACKEND_URL + url, {
+    return await fetch(url, {
         method: "POST",
         body: file,
         headers: {
