@@ -6,12 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from game_file_manager import GameFileManager
-from compile_job_manager import CompileJobManager
+from backend.src.compile_job_service import CompileJobService
 
 
 # Dependencies
 game_file_manager = GameFileManager()
-compile_job_manager = CompileJobManager(game_file_manager)
+compile_job_service = CompileJobService(game_file_manager)
 
 
 # FastAPI application
@@ -33,18 +33,17 @@ app.add_middleware(
 
 
 @app.get("/")
-async def home():
-    return {"message": "Backend API is running"}
+async def home(request: Request):
+    return {"message": "Backend API is running", "routes": set(route.path for route in request.app.routes)}
 
 
 @app.post("/api/compile")
-async def compile_map(request: Request):
-    game = request.query_params.get("game")
-    file_name = request.query_params.get("fileName")
+async def compile_map(request: Request, game:str, fileName:str):
+    file_name = fileName
 
     body = await request.body()
 
-    job_response = compile_job_manager.create_compile_job(
+    job_response = compile_job_service.create_compile_job(
         body, game, file_name
     )
 
@@ -53,7 +52,7 @@ async def compile_map(request: Request):
 
     map_file_path = job_response.get("mapFilePath")
 
-    compile_job = compile_job_manager.run_map_compile(
+    compile_job = compile_job_service.run_map_compile(
         map_file_path, game
     )
 
@@ -65,7 +64,7 @@ async def compile_map(request: Request):
 
 @app.get("/api/bsp/{job_id}")
 async def get_bsp(job_id: str):
-    bsp_path, bsp_name = compile_job_manager.get_bsp(job_id)
+    bsp_path, bsp_name = compile_job_service.get_bsp(job_id)
 
     return FileResponse(
         path=f"{bsp_path}/{bsp_name}",
@@ -76,7 +75,7 @@ async def get_bsp(job_id: str):
 
 @app.get("/api/compile/{job_id}")
 async def get_compile_job(job_id: str):
-    job_details = compile_job_manager.get_compile_job(job_id)
+    job_details = compile_job_service.get_compile_job(job_id)
 
     if not job_details:
         raise HTTPException(
@@ -89,7 +88,7 @@ async def get_compile_job(job_id: str):
 
 @app.delete("/api/compile/{job_id}")
 async def cancel_compile_job(job_id: str):
-    cancel_status = compile_job_manager.cancel_compile_job(job_id)
+    cancel_status = compile_job_service.cancel_compile_job(job_id)
 
     if cancel_status is not True:
         raise HTTPException(

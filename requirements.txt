@@ -1,0 +1,5 @@
+vpk
+background
+fastapi
+psutil
+uvicorn

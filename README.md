@@ -16,6 +16,5 @@ Gimmicky application for offloading Source engine map compiling tasks to a remot
   * Download compiled .BSP
 
 ## Future features
-
 * Packing custom assets automatically?
-* Load-balancer middleware to spread compiler tasks across multiple computers?
+* Load-balancer middleware to spread compiler tasks across multiple computers (cluster setup)?

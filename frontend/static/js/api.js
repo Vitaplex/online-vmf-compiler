@@ -1,4 +1,3 @@
-const BACKEND_URL="http://localhost:7676";
 
 export async function getExistingGameFiles(filePaths, game) {
     const params = new URLSearchParams({ game: game });

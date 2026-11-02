@@ -48,7 +48,7 @@ class GameFileManager:
         return DIRECTORIES
 
     def get_directory(self, name):
-        return [dir for dir in DIRECTORIES if dir.get('name') == name][0]
+        return index(0, [dir for dir in DIRECTORIES if dir.get('name') == name])
 
     
 
