@@ -24,6 +24,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:7677",
         "http://127.0.0.1:7677",
+        "http://0.0.0.0:7677",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -137,7 +138,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "server:app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=7676,
         reload=True
     )
