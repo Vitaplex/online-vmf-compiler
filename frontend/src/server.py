@@ -15,7 +15,7 @@ app = FastAPI()
 BASE_DIR = Path(__file__).resolve().parent.parent
 print("BASE DIR: " + str(BASE_DIR))
 
-BACKEND_URL = "127.0.0.1:7676" # Backend running on the same computer
+BACKEND_URL = "http://127.0.0.1:7676" # Backend running on the same computer
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
