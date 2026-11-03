@@ -33,8 +33,12 @@ export async function getJob(jobId) {
     return await response.json();
 }
 
-export async function compileVmfFile(selectedGame, vmfFile, fileName) {
-    const params = new URLSearchParams({ game: selectedGame, fileName: fileName });
+export async function compileVmfFile(selectedGame, vmfFile, fileName, compileParams) {
+    const params = new URLSearchParams({ game: selectedGame, fileName: fileName});
+    console.log(compileParams);
+    if(compileParams?.vbsp) params.append("vbspParams", compileParams.vbsp);
+    if(compileParams?.vvis) params.append("vvisParams", compileParams.vvis);
+    if(compileParams?.vrad) params.append("vradParams", compileParams.vrad);
 
     const response = await sendFileAsync("/api/compile?" + params, vmfFile);
     await isOk(response);

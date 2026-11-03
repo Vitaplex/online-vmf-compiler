@@ -18,6 +18,7 @@
     --border-color: rgb(44, 82, 68);
 
     /* Accents */
+    --textarea-bg: rgb(10 7 12);
     --queued01: rgb(82, 82, 82);
     --ok01: rgb(59, 152, 139);
     --running01: rgb(59, 211, 160);
@@ -89,8 +90,17 @@ input {
     height: 2em;
 }
 
+.compile-input {
+    height: 0.85em;
+    margin-block: 1px;
+    background-color:var(--textarea-bg);
+    font-family: monospace;
+    border: var(--border-color) 1px solid;
+    color: var(--text-main);
+}
+
 pre, textarea.pre {
-    background-color: rgb(10 7 12);
+    background-color: var(--textarea-bg);
     color: var(--text-main);
     resize: none;
     width: 100%;

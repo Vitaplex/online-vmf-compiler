@@ -40,21 +40,20 @@ async def home(request: Request):
 @app.post("/api/compile")
 async def compile_map(request: Request, game:str, fileName:str):
     file_name = fileName
-
+    vbsp_params = request.query_params.get("vbspParams")
+    vvis_params = request.query_params.get("vvisParams")
+    vrad_params = request.query_params.get("vradParams")
+    
     body = await request.body()
 
-    job_response = compile_job_service.create_compile_job(
-        body, game, file_name
-    )
-
+    job_response = compile_job_service.create_compile_job(body, game, file_name)
+    print(job_response)
     if not job_response.get("success", True):
         raise HTTPException(status_code=400, detail=job_response)
 
     map_file_path = job_response.get("mapFilePath")
 
-    compile_job = compile_job_service.run_map_compile(
-        map_file_path, game
-    )
+    compile_job = compile_job_service.run_map_compile(map_file_path, game, vbsp_params, vvis_params, vrad_params)
 
     if not compile_job.get("success", False):
         raise HTTPException(status_code=400, detail=job_response)

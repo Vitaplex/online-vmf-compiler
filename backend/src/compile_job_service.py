@@ -43,14 +43,14 @@ class CompileJobService:
             print(ex)
             return { "success": False, "error": str(ex) }
         
-    def run_map_compile(self, map_file_path, name):
+    def run_map_compile(self, map_file_path, name, vbsp_params, vvis_params, vrad_params):
         game_config = self.game_file_manager.get_directory(name)
         compiler_path = os.path.join(game_config.get('path'), game_config.get('compilerPath'))
         vbsp_path = os.path.join(compiler_path, game_config.get('vbsp'))
         vvis_path = os.path.join(compiler_path, game_config.get('vvis'))
         vrad_path = os.path.join(compiler_path, game_config.get('vrad'))
-        
-        compile_map(vbsp_path, vvis_path, vrad_path, map_file_path)
+
+        compile_map(vbsp_path, vbsp_params, vvis_path, vvis_params, vrad_path, vrad_params, map_file_path)
         
         return { "success": True }
 
@@ -73,7 +73,7 @@ class CompileJobService:
             except Exception as ex:
                 break
 
-        write_status_file(None, path, "terminated")
+        write_status_file(None, path,None, "terminated")
 
         return True
 
@@ -81,7 +81,7 @@ class CompileJobService:
     def get_compile_job(self, job_id):
         job_filepath = self.get_files_for_job(job_id)
         if not job_filepath: return None
-
+        
         log_file = get_globby_file_path(job_filepath, "*.log")
         status_file = get_globby_file_path(job_filepath, "status")
 
@@ -91,6 +91,7 @@ class CompileJobService:
         statuses = parse_status_file(status_file.get("content"))
 
         return {"path": job_filepath, "statuses": statuses, "log": log_file.get("content")}
+
 
     def get_bsp(self, job_id):
         job_files = self.get_files_for_job(job_id)
@@ -110,21 +111,25 @@ class CompileJobService:
                 return mapsrc
 
 @background.task        
-def compile_map(vbsp_path, vvis_path, vrad_path, map_file_path):
-    run_process(map_file_path, vbsp_path, "vbsp")
+def compile_map(vbsp_path, vbsp_params, vvis_path, vvis_params, vrad_path, vrad_params, map_file_path):
+    run_process(map_file_path, vbsp_path, vbsp_params, "vbsp")
 
     bsp_path = os.path.splitext(map_file_path)[0] + ".bsp"
-    run_process(bsp_path, vvis_path, "vvis")
-    run_process(bsp_path, vrad_path, "vrad")
-    write_status_file(None, map_file_path, "finished")
+    run_process(bsp_path, vvis_path, vvis_params, "vvis")
+    run_process(bsp_path, vrad_path, vrad_params, "vrad")
+    write_status_file(None, map_file_path,None, "finished")
 
-def run_process(map_file_path, process_path, tag):
-    process = subprocess.Popen([process_path, map_file_path])
-    write_status_file(process.pid, map_file_path, tag)
+
+def run_process(map_file_path, process_path, process_params, tag):
+    process_string = f"\"{process_path}\" {'' if process_params == None or process_params == '' else process_params} \"{map_file_path}\""
+    print("Running subprocess:" + process_string)
+    process = subprocess.Popen(process_string)
+    write_status_file(process.pid, map_file_path, process_params, tag)
     process.wait()
 
+
 # The status file is used to keep track of the current status of the compile job
-def write_status_file(pid, map_file_path, status):
+def write_status_file(pid, map_file_path, process_params, tag):
     pid = str(pid)
     sep = "|"
     date = datetime.now(timezone.utc).strftime('%d/%m/%YT%H:%M:%S%z')
@@ -138,20 +143,24 @@ def write_status_file(pid, map_file_path, status):
     map_file_path = use_map_file_directory if is_map_file_directory is not True else just_use_map_file_path 
     
     with open(os.path.join(map_file_path, "status"), "a+") as f:
-        f.write(f"{date}{sep}{status}{sep}{pid}\n")
+        f.write(f"{date}{sep}{tag}{sep}{process_params}{sep}{pid}\n")
+
 
 def parse_status_file(status_file):
     status_lines = status_file.split("\n")
     lines = [line for line in status_lines if line is not None and line != ""]
     return [get_status_line(line) for line in lines]
 
+
 def get_status_line(line:str):
     parts = line.split("|")
     return {
         "time": datetime.strptime(index(0,parts),"%d/%m/%YT%H:%M:%S%z"), 
         "status":index(1, parts).strip("\n"), 
-        "pid": index(2, parts)
+        "params":index(2, parts).strip("\n"), 
+        "pid": index(3, parts).strip("\n")
     }
+
 
 def try_get_running_process(pids):
     active_pids = []

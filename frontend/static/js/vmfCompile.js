@@ -3,7 +3,7 @@ import { getUserCustomFilesFromPage, addUserCustomFilesInputs } from "./userCust
 import { enableElement, disableElement } from "./htmlHelpers.js";
 import { resolveAssetsInVmfFile, resolveCustomFilesInVmf } from "./vmfParser.js";
 
-export async function handleCompileVmfClick(button, outputArea, selectedGame, ignoreMissingFiles, vmfFileObject, fileName) {
+export async function handleCompileVmfClick(button, outputArea, selectedGame, ignoreMissingFiles, vmfFileObject, fileName, compileParams) {
     outputArea.classList.remove("error");
 
     if (!vmfFileObject) alert("No .vmf file selected!");
@@ -38,11 +38,11 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
     }
 
     disableElement(button, "Compiling vmf-file...");
-    return await sendVmfToBackend(selectedGame, vmfFileObject.stringrepresentation, fileName)
+    return await sendVmfToBackend(selectedGame, vmfFileObject.stringrepresentation, fileName, compileParams)
 }
 
-async function sendVmfToBackend(selectedGame, vmfFile, fileName) {
-    const response = await api.compileVmfFile(selectedGame, vmfFile, fileName);
+async function sendVmfToBackend(selectedGame, vmfFile, fileName, compileParams) {
+    const response = await api.compileVmfFile(selectedGame, vmfFile, fileName, compileParams);
     return response;
 }
 

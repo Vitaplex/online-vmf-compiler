@@ -31,13 +31,14 @@ const INPUT_VMF = document.getElementById("input-vmf");
 const SELECT_GAME = document.getElementById("select-game-vmf");
 const RESPONSE_OUTPUT = document.getElementById("response-output");
 const COMPILER_OUTPUT = document.getElementById("compiler-output");
+
 const PROGRESS_BAR = {
     progressBar: document.getElementById("progress-bar"),
     vbspStatus: document.getElementById("progress-vbsp"),
     vvisStatus: document.getElementById("progress-vvis"),
     vradStatus: document.getElementById("progress-vrad"),
     finishedStatus: document.getElementById("progress-finished")
-}
+};
 
 let VMF_FILE;
 let JOB_ID;
@@ -105,14 +106,28 @@ async function setupVmfFileInput() {
         LABEL_INPUT_VMF.innerHTML = vmfInputLabelOriginalText;
     });
 
+
     BUTTON_COMPILE_VMF.addEventListener("click", async () => {
         const selectedGame = SELECT_GAME.options[SELECT_GAME.selectedIndex].innerText;
         const ignoreMissingFiles = document.getElementById("ignore-missing-files")?.checked ?? false;
         const fileName = LABEL_INPUT_VMF.innerText;
 
+        const compilerParameters = {
+            vbsp: document.getElementById("input-vbsp-params").value,
+            vvis: document.getElementById("input-vvis-params").value,
+            vrad: document.getElementById("input-vrad-params").value,
+        };  
+
         uiState_CompilingMap();
         try {
-            const compileResponse = await handleCompileVmfClick(BUTTON_COMPILE_VMF, RESPONSE_OUTPUT, selectedGame, ignoreMissingFiles, VMF_FILE, fileName);
+            const compileResponse = await handleCompileVmfClick(
+                BUTTON_COMPILE_VMF, 
+                RESPONSE_OUTPUT, 
+                selectedGame, 
+                ignoreMissingFiles, 
+                VMF_FILE, 
+                fileName, 
+                compilerParameters);
             if (compileResponse) {
                 JOB_ID = compileResponse.jobId;
                 // 500ms wait for the compile process to start, and the log file to be written
@@ -175,6 +190,8 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
             }
             response = await api.getCompileJob(jobId);
 
+            console.log(response);
+            
             if (response.success == false) {
                 COMPILER_OUTPUT.value = "";
                 RESPONSE_OUTPUT.classList.add("error");
@@ -182,7 +199,7 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
                 break;
             }
 
-            COMPILER_OUTPUT.value = response.log.trim();
+            COMPILER_OUTPUT.value = response.log?.trim();
 
             updateStatuses(response.statuses);
 

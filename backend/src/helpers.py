@@ -29,11 +29,12 @@ def get_vpk_files(path):
     return return_files
 
 def index(index, array):
-    if len(array) >= index:
+    if array is not None and len(array) > 0 and len(array) >= index:
         return array[index]
 
 def get_globby_file_path(path, name):
     globbed_path = index(0, glob.glob(os.path.join(path, name)))
+    if globbed_path is None: return
     with open(globbed_path, "r") as f:
         return {"path": globbed_path, "content": f.read()}
 
