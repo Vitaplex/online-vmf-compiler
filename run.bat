@@ -1,3 +1,3 @@
-start "Frontend" cmd /k "cd ./frontend && python src/server.py"
+start "OVMFC - Client" cmd /k "python ./frontend/src/server.py"
 
-start "Backend" cmd /k "cd ./backend && python src/server.py"
+start "OVMFC - Server" cmd /k "python ./backend/src/server.py"

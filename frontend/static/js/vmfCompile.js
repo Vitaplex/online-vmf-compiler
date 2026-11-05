@@ -25,7 +25,7 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
     if (missingFiles.size > 0 && !ignoreMissingFiles) {
         console.warn("Missing files not provided by the user!", missingFiles);
         outputArea.classList.add("error");
-        outputArea.value = `Missing assets! (${missingFiles.size})\nThese assets are missing locally, and is not provided by the user using the "Select custom files" option:\n\n` + Array.from(missingFiles).join("\n");
+        outputArea.value = `Missing assets! (${missingFiles.size})\nThese assets are missing locally, and are not provided by the user using the "Select custom files" option:\n\n` + Array.from(missingFiles).join("\n");
         return;
     }
     else if (missingFiles) {

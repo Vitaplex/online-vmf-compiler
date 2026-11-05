@@ -180,11 +180,16 @@ def parse_status_file(status_file):
 def get_status_line(line:str):
     parts = line.split("|")
     print(parts)
+    time = datetime.strptime(index(0,parts),"%d/%m/%YT%H:%M:%S%z")
+    status = index(1, parts)
+    params = b64_decode_str(index(2, parts))
+    pid = index(3, parts).strip("\n")
+    
     return {
-        "time": datetime.strptime(index(0,parts),"%d/%m/%YT%H:%M:%S%z"), 
-        "status":index(1, parts).strip("\n"), 
-        "params":b64_decode_str(index(2, parts)).strip("\n"), 
-        "pid": index(3, parts).strip("\n")
+        "time": time, 
+        "status": status, 
+        "params": params, 
+        "pid": pid
     }
 
 

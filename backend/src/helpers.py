@@ -5,10 +5,20 @@ import base64
 import vpk
 
 def get_configured_directories():
-    with open("./config.json", "r") as config_file:
+    config_path = try_get_path("config.json") or try_get_path("./backend/config.json")
+    if config_path is None:
+        raise FileNotFoundError("Config file not found")
+    
+    print("Config path: " + config_path)
+    with open(config_path, "r") as config_file:
         content = config_file.read()
         config = json.loads(content)
         return config
+
+def try_get_path(path):
+    if os.path.exists(path):
+        return os.path.abspath(path)
+    return None
 
 def get_vpk_files_for_all_directories(configuration):
     vpk_dirs = []
@@ -42,9 +52,11 @@ def error(message):
     return {"success": False, "message": message }
 
 def b64_encode_str(input):
-    if input != str(input): return None
+    if input == None or input == "None" or input != str(input) : return None
+    print("ENCODING " + input)
     return base64.b64encode(input.encode("ascii")).decode("ascii")
 
 def b64_decode_str(input):
-    if input != str(input): return None
+    if input == None or input == "None" or input != str(input): return None
+    print("DECODING " + input)
     return base64.b64decode(input.encode("ascii")).decode("ascii")

@@ -48,7 +48,7 @@ let JOB_ID;
 function setupScrollingForCompilerOutput() {
     setInterval(() => {
         const atBottom = COMPILER_OUTPUT.scrollHeight - COMPILER_OUTPUT.scrollTop >= COMPILER_OUTPUT.clientHeight;
-        if (atBottom) {
+        if (atBottom && (!COMPILER_OUTPUT.matches(":focus"))) {
             COMPILER_OUTPUT.scrollTop = COMPILER_OUTPUT.scrollHeight;
         }
     }, 100);
@@ -86,6 +86,7 @@ async function setupCancelCompileButton() {
     BUTTON_CANCEL_COMPILE_JOB.addEventListener("click", async () => {
         // disableElement(BUTTON_CANCEL_COMPILE_JOB,"Cancelling");
         const response = api.cancelCompileJob(JOB_ID);
+        uiState_InitialState();
     });
 }
 
