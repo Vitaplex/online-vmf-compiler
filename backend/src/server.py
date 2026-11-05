@@ -8,7 +8,6 @@ from fastapi.responses import FileResponse
 from game_file_manager import GameFileManager
 from compile_job_service import CompileJobService
 
-
 # Dependencies
 game_file_manager = GameFileManager()
 compile_job_service = CompileJobService(game_file_manager)
@@ -36,6 +35,9 @@ app.add_middleware(
 async def home(request: Request):
     return {"message": "Backend API is running", "routes": set(route.path for route in request.app.routes)}
 
+@app.get("/api/jobs-count")
+async def get_jobs_count():
+    return sum(len(job.get("runningJobs")) for job in compile_job_service.get_running_jobs())
 
 @app.post("/api/compile")
 async def compile_map(request: Request, game:str, fileName:str):

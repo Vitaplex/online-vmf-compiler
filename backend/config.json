@@ -3,9 +3,9 @@
         "name": "Garry's Mod",
         "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod",
         "compilerPath": "bin\\win64",
-        "vbsp": "vbsp.exe",
-        "vvis": "vvis.exe",
-        "vrad": "vrad.exe",
+        "vbsp": "vbsp++.exe",
+        "vvis": "vvis++.exe",
+        "vrad": "vrad++.exe",
         "assetDir": "garrysmod",
         "sourceVmfs": "mapsrc"
     },

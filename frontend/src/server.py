@@ -31,6 +31,7 @@ async def home():
         content=index_path.read_text(encoding="utf-8")
     )
 
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 async def proxy(path:str, request: Request):
     url = f"{BACKEND_URL}/api/{path}"

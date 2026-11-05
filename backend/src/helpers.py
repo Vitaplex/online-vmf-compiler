@@ -1,7 +1,7 @@
 import glob
 import json
 import os
-
+import base64
 import vpk
 
 def get_configured_directories():
@@ -40,3 +40,11 @@ def get_globby_file_path(path, name):
 
 def error(message):
     return {"success": False, "message": message }
+
+def b64_encode_str(input):
+    if input != str(input): return None
+    return base64.b64encode(input.encode("ascii")).decode("ascii")
+
+def b64_decode_str(input):
+    if input != str(input): return None
+    return base64.b64decode(input.encode("ascii")).decode("ascii")

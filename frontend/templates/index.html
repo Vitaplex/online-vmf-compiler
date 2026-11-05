@@ -14,6 +14,7 @@
         <img id="logo" src="/static/media/logo.png">
         <h1>Online .vmf Compiler</h1>
         <div id="header-content-right">
+            <code id="label-running-jobs" title="Current running jobs">0</code>
             <input id="input-ticket" type="text" placeholder="Ticket ID">
             <button class="slim" id="button-input-ticket">Get compile job</button>
         </div>
@@ -60,14 +61,13 @@
                 </div>
                 <div class="labeled flex fd-lr max">
                     <span>Application Output</span>
-                    <textarea class="pre" id="response-output"
-                        placeholder="Any missing file errors will appear here..."></textarea>
+                    <textarea class="pre" id="response-output" placeholder="Any errors will appear here..."></textarea>
                 </div>
             </section>
             <section id="section-right-bottom">
                 <div class="labeled flex fd-lr max">
                     <span>Compiler window</span>
-                    <textarea class="pre" id="compiler-output" placeholder="VBSP/VVID/VRAD output goes here" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+                    <textarea class="pre" id="compiler-output" placeholder="VBSP/VVID/VRAD output goes here"></textarea>
                 </div>
             </section>
         </fieldset>

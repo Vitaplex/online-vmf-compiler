@@ -93,11 +93,11 @@ function getSolidMaterials(solid) {
 }
 
 export function resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir) {
-    const userCustomFilesSet = new Set(userCustomFiles.map(ucf => ucf.path));
+    const userCustomFilesSet = new Set(userCustomFiles.map(ucf => ucf.path.toUpperCase()));
     const fileNotInLocalDirSet = new Set(filesNotInLocalDir);
 
-    const difference = new Set([...fileNotInLocalDirSet].filter(x => !userCustomFilesSet.has(x)));
-    return difference.size > 0 ? difference : filesNotInLocalDir;
+    const difference = new Set([...fileNotInLocalDirSet].filter(x => !userCustomFilesSet.has(x.toUpperCase())));
+    return difference;
 }
 
 function getFormattedWebkitPath(fileObject) {

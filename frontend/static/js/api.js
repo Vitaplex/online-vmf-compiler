@@ -33,9 +33,14 @@ export async function getJob(jobId) {
     return await response.json();
 }
 
+export async function getJobCount() {
+    const response = await fetch("/api/jobs-count/");
+    await isOk(response);
+    return await response.text();
+}
+
 export async function compileVmfFile(selectedGame, vmfFile, fileName, compileParams) {
     const params = new URLSearchParams({ game: selectedGame, fileName: fileName});
-    console.log(compileParams);
     if(compileParams?.vbsp) params.append("vbspParams", compileParams.vbsp);
     if(compileParams?.vvis) params.append("vvisParams", compileParams.vvis);
     if(compileParams?.vrad) params.append("vradParams", compileParams.vrad);

@@ -1,3 +1,4 @@
+import base64
 import glob
 import os
 import signal
@@ -8,14 +9,20 @@ import time
 from pathlib import Path
 from uuid import uuid4
 from datetime import datetime, timezone
-from helpers import index, get_globby_file_path, error
+from helpers import index, get_globby_file_path, error, b64_decode_str, b64_encode_str
 
 from game_file_manager import GameFileManager
 
+RUNFILE_NAME = "runfile"
 
 class CompileJobService:
     def __init__(self, gamefilemanager:GameFileManager):
         self.game_file_manager = gamefilemanager
+
+    def get_running_jobs(self):
+        job_dirs = [{"name": game.get("name"), "path": os.path.join(game.get('path'), game.get('assetDir'), game.get("sourceVmfs"))} for game in self.game_file_manager.get_config()]
+        run_files = [{"name": job_dir.get("name"), "runningJobs": glob.glob(os.path.join(job_dir.get("path"),"**", RUNFILE_NAME))} for job_dir in job_dirs]
+        return run_files
 
     def create_compile_job(self, vmf_file, name, file_name):
         game_config = self.game_file_manager.get_directory(name)
@@ -54,9 +61,15 @@ class CompileJobService:
         
         return { "success": True }
 
-    def cancel_compile_job(self, job_id):
+    def cancel_compile_job_write_status(self, job_id):
         job = self.get_compile_job(job_id)
         path = job.get("path")
+
+        write_status_file(None, path, None, "terminated")
+        self.cancel_compile_job(job_id)
+
+    def cancel_compile_job(self, job_id):
+        job = self.get_compile_job(job_id)
         statuses = job.get("statuses", [])
 
         pids = [stat.get("pid") for stat in statuses]
@@ -72,9 +85,6 @@ class CompileJobService:
                     self.cancel_compile_job(job_id) 
             except Exception as ex:
                 break
-
-        write_status_file(None, path,None, "terminated")
-
         return True
 
 
@@ -112,13 +122,31 @@ class CompileJobService:
 
 @background.task        
 def compile_map(vbsp_path, vbsp_params, vvis_path, vvis_params, vrad_path, vrad_params, map_file_path):
-    run_process(map_file_path, vbsp_path, vbsp_params, "vbsp")
+    try:
+        print("creating run file")
+        create_run_file(Path(map_file_path))
+        print("running vbsp")
+        run_process(map_file_path, vbsp_path, vbsp_params, "vbsp")
 
-    bsp_path = os.path.splitext(map_file_path)[0] + ".bsp"
-    run_process(bsp_path, vvis_path, vvis_params, "vvis")
-    run_process(bsp_path, vrad_path, vrad_params, "vrad")
-    write_status_file(None, map_file_path,None, "finished")
+        print("running vvis")
+        bsp_path = os.path.splitext(map_file_path)[0] + ".bsp"
+        run_process(bsp_path, vvis_path, vvis_params, "vvis")
+        print("running vrad")
+        run_process(bsp_path, vrad_path, vrad_params, "vrad")
+        write_status_file(None, map_file_path,None, "finished")
+        delete_run_file(map_file_path)
+    except Exception as ex:
+        print(ex)
 
+# The run file will make it easy to fetch which jobs are currently running
+def create_run_file(map_file_path):
+    map_file_path = resolve_map_file_path(map_file_path)
+    with open(os.path.join(map_file_path, RUNFILE_NAME), "w+") as f:
+        f.write("")
+
+def delete_run_file(map_file_path):
+    map_file_path = resolve_map_file_path(map_file_path)
+    os.remove(os.path.join(map_file_path,RUNFILE_NAME))
 
 def run_process(map_file_path, process_path, process_params, tag):
     process_string = f"\"{process_path}\" {'' if process_params == None or process_params == '' else process_params} \"{map_file_path}\""
@@ -134,16 +162,13 @@ def write_status_file(pid, map_file_path, process_params, tag):
     sep = "|"
     date = datetime.now(timezone.utc).strftime('%d/%m/%YT%H:%M:%S%z')
 
-    use_map_file_directory = Path(map_file_path).parent
+    map_file_path = resolve_map_file_path(map_file_path)
 
-    is_map_file_directory = os.path.isdir(map_file_path)
-    just_use_map_file_path = map_file_path
+    # Avoid user passing separator and breaking this fragile veil
+    process_params_base64 = b64_encode_str(process_params)
 
-    # Python is an anglo-saxon-oriented programming language
-    map_file_path = use_map_file_directory if is_map_file_directory is not True else just_use_map_file_path 
-    
     with open(os.path.join(map_file_path, "status"), "a+") as f:
-        f.write(f"{date}{sep}{tag}{sep}{process_params}{sep}{pid}\n")
+        f.write(f"{date}{sep}{tag}{sep}{process_params_base64}{sep}{pid}\n")
 
 
 def parse_status_file(status_file):
@@ -154,10 +179,11 @@ def parse_status_file(status_file):
 
 def get_status_line(line:str):
     parts = line.split("|")
+    print(parts)
     return {
         "time": datetime.strptime(index(0,parts),"%d/%m/%YT%H:%M:%S%z"), 
         "status":index(1, parts).strip("\n"), 
-        "params":index(2, parts).strip("\n"), 
+        "params":b64_decode_str(index(2, parts)).strip("\n"), 
         "pid": index(3, parts).strip("\n")
     }
 
@@ -171,3 +197,10 @@ def try_get_running_process(pids):
             pass
 
     return active_pids
+
+def resolve_map_file_path(map_file_path):
+    use_map_file_directory = Path(map_file_path).parent
+    is_map_file_directory = os.path.isdir(map_file_path)
+    just_use_map_file_path = map_file_path
+    # Python is an anglo-saxon-oriented programming language
+    return use_map_file_directory if is_map_file_directory is not True else just_use_map_file_path 

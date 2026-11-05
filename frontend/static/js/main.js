@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await setupCancelCompileButton();
     await setupCompileJobButton();
     await setupDownloadButton();
+    await setupCheckJobCount();
     await setupVmfFileInput();
     await setupGameSelect();
     setupScrollingForCompilerOutput();
@@ -31,6 +32,7 @@ const INPUT_VMF = document.getElementById("input-vmf");
 const SELECT_GAME = document.getElementById("select-game-vmf");
 const RESPONSE_OUTPUT = document.getElementById("response-output");
 const COMPILER_OUTPUT = document.getElementById("compiler-output");
+const LABEL_RUNNING_JOBS = document.getElementById("label-running-jobs");
 
 const PROGRESS_BAR = {
     progressBar: document.getElementById("progress-bar"),
@@ -50,6 +52,13 @@ function setupScrollingForCompilerOutput() {
             COMPILER_OUTPUT.scrollTop = COMPILER_OUTPUT.scrollHeight;
         }
     }, 100);
+}
+
+async function setupCheckJobCount(){
+    setInterval(async () => {
+        const count = await api.getJobCount();
+        LABEL_RUNNING_JOBS.innerText = count;
+    },2000);
 }
 
 async function setupGameSelect() {
@@ -77,7 +86,6 @@ async function setupCancelCompileButton() {
     BUTTON_CANCEL_COMPILE_JOB.addEventListener("click", async () => {
         // disableElement(BUTTON_CANCEL_COMPILE_JOB,"Cancelling");
         const response = api.cancelCompileJob(JOB_ID);
-        console.log(response);
     });
 }
 
@@ -120,6 +128,7 @@ async function setupVmfFileInput() {
 
         uiState_CompilingMap();
         try {
+            RESPONSE_OUTPUT.classList.remove("error");
             const compileResponse = await handleCompileVmfClick(
                 BUTTON_COMPILE_VMF, 
                 RESPONSE_OUTPUT, 
@@ -128,10 +137,15 @@ async function setupVmfFileInput() {
                 VMF_FILE, 
                 fileName, 
                 compilerParameters);
+                
             if (compileResponse) {
                 JOB_ID = compileResponse.jobId;
                 // 500ms wait for the compile process to start, and the log file to be written
                 setTimeout(async () => await getCompileJobStatus(JOB_ID), 500);
+                return;
+            }
+            else{
+                uiState_ReadyToCompile();
                 return;
             }
         } catch (error) {
@@ -150,7 +164,6 @@ async function handleVmfUpload(event) {
     LABEL_INPUT_VMF.innerHTML = `Loading .vmf file...`;
 
     VMF_FILE = await readAndParseVmfFile(file);
-    console.log(VMF_FILE);
 
     LABEL_INPUT_VMF.innerHTML = `<code>${file.name}</code>`;
 }
@@ -189,10 +202,8 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
                 break;
             }
             response = await api.getCompileJob(jobId);
-
-            console.log(response);
             
-            if (response.success == false) {
+            if (!response || response.success == false) {
                 COMPILER_OUTPUT.value = "";
                 RESPONSE_OUTPUT.classList.add("error");
                 RESPONSE_OUTPUT.value = "No job with id " + jobId + " found";
@@ -228,8 +239,6 @@ function updateStatuses(statuses) {
     const statusTypes = ["queued", "failed", "running", "finished"];
 
     enableElement(PROGRESS_BAR.progressBar);
-
-    console.log(statuses);
 
     const vbsp = statuses.filter(rs => rs.status == "vbsp");
     const vvis = statuses.filter(rs => rs.status == "vvis");
@@ -267,11 +276,16 @@ function updateStatuses(statuses) {
     }
 }
 
+function uiState_ReadyToCompile() {
+    uiState_CompileJobFinished();
+    enableElement(BUTTON_COMPILE_VMF);
+    disableElement(BUTTON_DOWNLOAD);
+}
+
 function uiState_InitialState() {
     uiState_CompileJobFinished();
     disableElement(BUTTON_COMPILE_VMF);
     disableElement(BUTTON_DOWNLOAD);
-
 }
 
 function uiState_GetFinishedCompileJob() {

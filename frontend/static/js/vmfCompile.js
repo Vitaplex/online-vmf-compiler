@@ -4,8 +4,6 @@ import { enableElement, disableElement } from "./htmlHelpers.js";
 import { resolveAssetsInVmfFile, resolveCustomFilesInVmf } from "./vmfParser.js";
 
 export async function handleCompileVmfClick(button, outputArea, selectedGame, ignoreMissingFiles, vmfFileObject, fileName, compileParams) {
-    outputArea.classList.remove("error");
-
     if (!vmfFileObject) alert("No .vmf file selected!");
 
     disableElement(button, "Getting custom files...");
@@ -24,7 +22,7 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
 
     const missingFiles = resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir) ?? [];
 
-    if (missingFiles.length > 0 && !ignoreMissingFiles) {
+    if (missingFiles.size > 0 && !ignoreMissingFiles) {
         console.warn("Missing files not provided by the user!", missingFiles);
         outputArea.classList.add("error");
         outputArea.value = `Missing assets! (${missingFiles.size})\nThese assets are missing locally, and is not provided by the user using the "Select custom files" option:\n\n` + Array.from(missingFiles).join("\n");
@@ -32,7 +30,7 @@ export async function handleCompileVmfClick(button, outputArea, selectedGame, ig
     }
     else if (missingFiles) {
         disableElement(button, "Uploading custom files...");
-        const response = await uploadFiles(userCustomFiles, missingFiles, selectedGame);
+        const response = await uploadFiles(userCustomFiles, filesNotInLocalDir, selectedGame);
         const errors = response.filter(e => !e.success);
         if (errors) errors.forEach(err => { outputArea.value += "Error uploading file: " + JSON.stringify(err.path) + "\n" });
     }
@@ -46,9 +44,9 @@ async function sendVmfToBackend(selectedGame, vmfFile, fileName, compileParams) 
     return response;
 }
 
-async function uploadFiles(userCustomFiles, missingFiles, selectedGame) {
+async function uploadFiles(userCustomFiles, filesNotInLocalDir, selectedGame) {
     // Remove duplicate paths
-    const dedupUserCustomFiles = dedupBasedOnProperty(userCustomFiles, (dd) => dd.path).filter(ucf => missingFiles.has(ucf.path));
+    const dedupUserCustomFiles = dedupBasedOnProperty(userCustomFiles, (dd) => dd.path).filter(ucf => filesNotInLocalDir.includes(ucf.path.replace(/\..{0,4}/, "")));
 
     // Create an array of tasks that each upload one of the files
     // TODO: Maybe add batching to avoid spamming HTTP requests? 
