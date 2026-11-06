@@ -90,13 +90,25 @@ input {
     height: 2em;
 }
 
-.compile-input {
+details summary::-webkit-details-marker {
+  display:none;
+}
+
+.compile-parameters-list{
+    position: absolute;
+    width:300px;
+    z-index: 16;
+}
+
+.compile-parameter {
     height: 0.85em;
+    margin-left: 16px;
     margin-block: 1px;
     background-color:var(--textarea-bg);
     font-family: monospace;
     border: var(--border-color) 1px solid;
     color: var(--text-main);
+    width: 100%;
 }
 
 pre, textarea.pre {

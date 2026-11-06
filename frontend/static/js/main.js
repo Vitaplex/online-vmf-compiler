@@ -3,6 +3,7 @@ import { parseVmfFile } from "./vmfParser.js";
 import { handleCompileVmfClick } from "./vmfCompile.js";
 import { addUserCustomFilesInputs } from "./userCustomFilesHelpers.js";
 import { disableElement, enableElement } from "./htmlHelpers.js";
+import { setupCompilerParameterSnippets } from "./compileParameters.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll("button").forEach(btn => {
@@ -16,6 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await setupCheckJobCount();
     await setupVmfFileInput();
     await setupGameSelect();
+    setupCompilerParameterSnippets();
     setupScrollingForCompilerOutput();
 
     uiState_InitialState();

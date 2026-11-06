@@ -40,10 +40,28 @@
                     <label for="ignore-missing-files">Ignore missing files</label>
                     <button class="inactive" id="download-button">Download</button>
                 </div>
-                <div class="flex fd-tb fw-nw">
-                    <input class="compile-input" id="input-vbsp-params" type="text" placeholder="VBSP parameters">
-                    <input class="compile-input" id="input-vvis-params" type="text" placeholder="VVIS parameters">
-                    <input class="compile-input" id="input-vrad-params" type="text" placeholder="VRAD parameters">
+                <div class="flex fd-tb fw-nw max">
+                    <div class="flex fd-lr compile-parameters">
+                        <button>*</button>
+                        <div class="compile-parameters-list" style="display: none;">
+                            <pre>-staticpropcombine</pre>
+                        </div>
+                        <input class="compile-parameter" id="input-vbsp-params" type="text" placeholder="VBSP parameters">
+                    </div>
+                    <div class="flex fd-lr compile-parameters">
+                        <button>*</button>
+                        <div class="compile-parameters-list" style="display: none;">
+                            <pre>-threads 8</pre>
+                        </div>
+                        <input class="compile-parameter" id="input-vvis-params" type="text" placeholder="VVIS parameters">
+                    </div>
+                    <div class="flex fd-lr compile-parameters">
+                        <button>*</button>
+                        <div class="compile-parameters-list" style="display: none;">
+                            <pre>-threads 8</pre>
+                        </div>
+                        <input class="compile-parameter" id="input-vrad-params" type="text" placeholder="VRAD parameters">
+                    </div>
                 </div>
                 <div class="flex fd-lr fw-nw">
                     <div id="progress-bar" class="inactive">

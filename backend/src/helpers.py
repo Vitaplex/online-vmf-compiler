@@ -53,10 +53,8 @@ def error(message):
 
 def b64_encode_str(input):
     if input == None or input == "None" or input != str(input) : return None
-    print("ENCODING " + input)
     return base64.b64encode(input.encode("ascii")).decode("ascii")
 
 def b64_decode_str(input):
     if input == None or input == "None" or input != str(input): return None
-    print("DECODING " + input)
     return base64.b64decode(input.encode("ascii")).decode("ascii")
