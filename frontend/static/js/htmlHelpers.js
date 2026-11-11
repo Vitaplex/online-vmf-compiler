@@ -1,3 +1,7 @@
+export function toggleStyle(elementStyle, style){
+    return elementStyle == style ? "unset" : style; 
+}
+
 export function disableElement(element, text) {
     element.disabled = true;
     element.classList.add("inactive");
@@ -23,4 +27,10 @@ function handleText(element, text) {
     else {
         element.innerText = text;
     }
+}
+
+export function anyChildOfParentByClassName(element, id) {
+    if (element == null) return false;
+    else if (element?.parentElement?.classList?.contains(id)) return true;
+    else anyChildOfParentByClassName(element.parentElement, id);
 }

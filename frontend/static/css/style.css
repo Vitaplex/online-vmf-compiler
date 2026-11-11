@@ -14,7 +14,7 @@
     --button-hover: rgb(104, 188, 157);
     --button-click: rgb(52, 88, 75);
     --button-inactive: rgb(118, 130, 125);
-    
+
     --border-color: rgb(44, 82, 68);
 
     /* Accents */
@@ -91,27 +91,29 @@ input {
 }
 
 details summary::-webkit-details-marker {
-  display:none;
+    display: none;
 }
 
-.compile-parameters-list{
+.compile-parameters-list {
     position: absolute;
-    width:300px;
+    width: 300px;
     z-index: 16;
+    transform: translateX(30px);
 }
 
 .compile-parameter {
     height: 0.85em;
     margin-left: 16px;
     margin-block: 1px;
-    background-color:var(--textarea-bg);
+    background-color: var(--textarea-bg);
     font-family: monospace;
     border: var(--border-color) 1px solid;
     color: var(--text-main);
     width: 100%;
 }
 
-pre, textarea.pre {
+pre,
+textarea.pre {
     background-color: var(--textarea-bg);
     color: var(--text-main);
     resize: none;
@@ -141,6 +143,16 @@ button {
     align-items: center;
     justify-content: center;
     gap: 1em;
+    z-index: 32;
+}
+
+button.invisible {
+    background-color: unset;
+    color: unset;
+    display: unset;
+    align-items: unset;
+    justify-content: unset;
+    gap: unset;
 }
 
 button:hover:enabled {
@@ -190,7 +202,7 @@ button.inactive {
     padding-block-end: 2em;
 }
 
-#section-left{
+#section-left {
     width: 480px;
 }
 
@@ -224,8 +236,8 @@ button.inactive {
     }
 }
 
-#progress-bar{
-    display:flex;
+#progress-bar {
+    display: flex;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     gap: 0em;
@@ -247,13 +259,16 @@ button.inactive {
 .progress-item.queued {
     background-color: var(--queued01);
 }
+
 .progress-item.failed {
     background-color: var(--error01);
 }
+
 .progress-item.running {
     background-color: var(--running01);
-    color:var(--body-color)
+    color: var(--body-color)
 }
+
 .progress-item.finished {
     background-color: var(--ok01);
 }
@@ -285,28 +300,42 @@ button.inactive {
     background-color: var(--ok01);
     --ok01-accent: var(--border-color);
     row-gap: 2px;
-    
-    span{
-        color:var(--border-color);
+
+    span {
+        color: var(--border-color);
         font-size: small;
         font-weight: bold;
         padding-left: 1em;
     }
+
     textarea {
         margin-block: 0px;
     }
 }
 
-.error{
+.error {
     border-color: var(--warning01) !important;
     animation: horizontal-shake 0.2s ease-in-out 3;
 }
 
 @keyframes horizontal-shake {
-    0%, 100% { transform: translateX(0); }
-    25%      { transform: translateX(-3px); }
-    50%      { transform: translateX(3px); }
-    75%      { transform: translateX(-3px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-3px);
+    }
+
+    50% {
+        transform: translateX(3px);
+    }
+
+    75% {
+        transform: translateX(-3px);
+    }
 }
 
 #response-output:focus {
@@ -334,9 +363,10 @@ button.inactive {
         margin-inline-end: 1em;
     }
 
-    main{
+    main {
         flex-direction: column;
     }
+
     #logo {
         height: 48px;
     }
