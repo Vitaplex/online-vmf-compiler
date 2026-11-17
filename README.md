@@ -10,6 +10,7 @@
 
 ### Setup game files
 > If you have your games installed in Steams default directory, you don't need to modify the path. Only update the tools++ paths
+
 in `config.json`, define the absolute path to the game directories of the games you want to compile maps for, aswell as the name of the vbsp, vvis and vrad-files to be used.
 `sourceVmfs` is the directory where the compiled maps will be stored.  
 It can also be an absolute path, if you want to store it somewhere else
@@ -18,10 +19,10 @@ It can also be an absolute path, if you want to store it somewhere else
     {
         "name": "Garry's Mod",
         "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod",
-        "compilerPath": "bin\\win64",
-        "vbsp": "vbsp++.exe",
-        "vvis": "vvis++.exe",
-        "vrad": "vrad++.exe",
+        "compilerPath": "bin",
+        "vbsp": "vbsp.exe",
+        "vvis": "vvis.exe",
+        "vrad": "vrad.exe",
         "assetDir": "garrysmod",
         "sourceVmfs": "mapsrc"
     },
