@@ -50,11 +50,9 @@ cd online-vmf-compiler
 Gimmicky application for offloading Source engine map compiling tasks to a remote server.  
 * Parses the .vmf file
 * Resolves user-submitted custom assets using **webkitdirectory**.  
-  * **User submitted files are uploaded and persisted to the server.**
-  * Referenced models include all provided same-stem companion files (such as
-    `.phy`, `.vvd`, `.dx80.vtx`, `.dx90.vtx`, `.sw.vtx`, and `.ani`). Each file
-    is checked independently, so missing related files are uploaded even when the
-    model itself already exists on the backend.
+  * **The directory selected in "Select custom files"-section" will be available to the server. Files used in the .vmf are uploaded and persisted to the server.**
+  * Referenced models include all provided related files (`.vmf`-file referencing `model001.mdl` will also fetch related models such as `model001.phy`, `model001.vvd`, `model001.dx80.vtx`, `model001.dx90.vtx`, `model001.sw.vtx`, and `model001.ani` if they are also found).  
+    Each file is checked independently, so missing related files are uploaded even when the model itself already exists on the backend.
 * No login
 * Compile multiple files at the same time
 * **Job-management**: see compile job's status (status and compile logs in real-time)
