@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         btn.addEventListener("mousedown", () => { btn.style = "background-color: var(--button-click);" });
         btn.addEventListener("mouseup", () => { btn.style = "background-color: var(--button-active);" });
     });
+
     addUserCustomFilesInputs();
     await setupCancelCompileButton();
     await setupCompileJobButton();
@@ -24,6 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 export const RESPONSE_OUTPUT = document.getElementById("response-output");
+const CLUSTER_NODE = document.getElementById("cluster-node");
 const BUTTON_COMPILE_VMF = document.getElementById("button-compile-vmf");
 const BUTTON_COMPILE_VMF_ORIGINALTEXT = BUTTON_COMPILE_VMF.querySelector("span")?.innerText;
 const BUTTON_DOWNLOAD = document.getElementById("download-button");
@@ -198,6 +200,8 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
     while (!finished) {
         try {
             response = await api.getCompileJob(jobId);
+            
+            CLUSTER_NODE.innerText = api.NODE_NAME;
 
             if (response.success == false) {
                 COMPILER_OUTPUT.value = "";
@@ -206,7 +210,7 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
                 finished = true;
                 break;
             }
-            
+
             if (errorCount > 5) {
                 finished = true;
                 uiState_ReadyToCompile();
@@ -229,7 +233,7 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
             if (finished) {
                 BUTTON_DOWNLOAD.querySelector("a").href = "/api/bsp/" + jobId;
                 BUTTON_DOWNLOAD.querySelector("a").target = "_blank";
-                
+
                 uiState_CompileJobFinished();
                 break;
             }
@@ -250,10 +254,10 @@ function updateStatuses(statuses) {
 
     enableElement(PROGRESS_BAR.progressBar);
 
-    const vbsp = statuses.filter(rs => rs.tag= "vbsp");
-    const vvis = statuses.filter(rs => rs.tag= "vvis");
-    const vrad = statuses.filter(rs => rs.tag= "vrad");
-    const finished = statuses.filter(rs => rs.tag= "finished");
+    const vbsp = statuses.filter(rs => rs.tag == "vbsp");
+    const vvis = statuses.filter(rs => rs.tag == "vvis");
+    const vrad = statuses.filter(rs => rs.tag == "vrad");
+    const finished = statuses.filter(rs => rs.tag == "finished");
 
     if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
         setStatus(PROGRESS_BAR.vbspStatus, "running");
@@ -294,8 +298,9 @@ function uiState_ReadyToCompile() {
 
 function uiState_InitialState() {
     uiState_CompileJobFinished();
-    disableElement(BUTTON_COMPILE_VMF);
+    disableElement(BUTTON_CANCEL_COMPILE_JOB);
     disableElement(BUTTON_DOWNLOAD);
+    disableElement(BUTTON_COMPILE_VMF);
 }
 
 function uiState_GetFinishedCompileJob() {

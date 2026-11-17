@@ -20,7 +20,7 @@ app = FastAPI()
 
 # Directory containing server.py
 BASE_DIR = Path(__file__).resolve().parent
-BACKEND_URL = index(1, sys.argv) or "https://127.0.0.1"
+BACKEND_URL = index(1, sys.argv) or "http://127.0.0.1:7676"
 
 print("Application base directory: " + str(BASE_DIR))
 print("Backend URL: " + BACKEND_URL)
@@ -29,7 +29,7 @@ print("Backend connectivity: " + str(try_connect_endpoint(BACKEND_URL)))
 @app.get("/", response_class=HTMLResponse)
 async def home():
     index_path = BASE_DIR / "templates" / "index.html"
-
+    print(index_path)
     if not index_path.exists():
         return HTMLResponse(
             content="index.html not found",

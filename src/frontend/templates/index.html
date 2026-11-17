@@ -21,6 +21,7 @@
         <select id="users-previous-jobs">
             <option value="" disabled selected>Previous jobs</option>
         </select>
+        <code id="cluster-node"></code>
     </header>
     <main>
         <fieldset class="main-section" id="section-left">
@@ -35,36 +36,43 @@
                     </select>
                     <label id="label-input-vmf" for="input-vmf">Select .vmf file</label>
                     <input hidden id="input-vmf" type="file" accept=".vmf">
-                    <button class="inactive" id="button-compile-vmf"><img src="/static/media/go.png"><span>Compile map</span></button>
-                    <input type="checkbox" id="ignore-missing-files">
-                    <label for="ignore-missing-files">Ignore missing files</label>
-                    <button class="inactive" id="download-button"><a style="color:unset; text-decoration: none" href="r">Download</a></button>
+                    <button class="inactive" id="button-compile-vmf"><img src="/static/media/go.png"><span>Compile
+                            map</span></button>
+                    <div class="flex fd-tb">
+                        <label for="ignore-missing-files" title="Ignore files not found locally or uploaded by the user">
+                            <input type="checkbox" id="ignore-missing-files">
+                            Ignore missing files
+                        </label>
+                        <label for="ignore-visclusters" title="Only useful if using vvis++! Removes func_visclusters from the .vmf before uploading to server. Does not modify your local version.">
+                            <input type="checkbox" id="ignore-visclusters">
+                            Ignore visclusters</label>
+                    </div>
+                    <button class="inactive" id="download-button"><a style="color:unset; text-decoration: none"
+                            href="r">Download</a></button>
                 </div>
                 <div class="flex fd-tb fw-nw max">
                     <div class="flex fd-lr compile-parameters">
-                        <button>*</button>
-                        <div class="compile-parameters-list" style="display: none;">
-                            <button class="invisible"><pre>-staticpropcombine</pre></button>
-                            <button class="invisible"><pre>-staticpropcombine</pre></button>
-                            <button class="invisible"><pre>-staticpropcombine</pre></button>
-                            <button class="invisible"><pre>-staticpropcombine</pre></button>
-                            <button class="invisible"><pre>-staticpropcombine</pre></button>
-                        </div>
-                        <input class="compile-parameter" id="input-vbsp-params" type="text" placeholder="VBSP parameters">
+                        <input list="vbsp" class="compile-parameter" id="input-vbsp-params" type="text"
+                            placeholder="VBSP parameters" /></label>
+                        <datalist id="vbsp">
+                            <option value="-allowdynamicpropsasstatic">
+                            <option value="-staticpropcombine">
+                        </datalist>
                     </div>
                     <div class="flex fd-lr compile-parameters">
-                        <button>*</button>
-                        <div class="compile-parameters-list" style="display: none;">
-                            <button class="invisible"><pre>-threads 8</pre></button>
-                        </div>
-                        <input class="compile-parameter" id="input-vvis-params" type="text" placeholder="VVIS parameters">
+                        <input list="vvis" class="compile-parameter" id="input-vvis-params" type="text"
+                            placeholder="VVIS parameters">
+                        <datalist id="vvis">
+                            <option value="-threads 8">
+                        </datalist>
                     </div>
                     <div class="flex fd-lr compile-parameters">
-                        <button>*</button>
-                        <div class="compile-parameters-list" style="display: none;">
-                            <button class="invisible"><pre>-threads 8</pre></button>
-                        </div>
-                        <input class="compile-parameter" id="input-vrad-params" type="text" placeholder="VRAD parameters">
+                        <input list="vrad" class="compile-parameter" id="input-vrad-params" type="text"
+                            placeholder="VRAD parameters">
+                        <datalist id="vrad">
+                            <option value="-threads 8">
+                        </datalist>
+
                     </div>
                 </div>
                 <div class="flex fd-lr fw-nw">
@@ -98,4 +106,5 @@
         </fieldset>
     </main>
 </body>
+
 </html>

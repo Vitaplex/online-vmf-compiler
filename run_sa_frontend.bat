@@ -5,6 +5,6 @@
 : Backend       7675
 
 SET BACKEND_URL=%1
-IF [%BACKEND_URL%] EQU [] SET BACKEND_URL="127.0.0.1:7675"
+IF [%BACKEND_URL%] EQU [] SET BACKEND_URL="http://127.0.0.1:7675"
 
-start "OVMFC - Client" cmd /k "python ./src/frontend/server.py" %BACKEND_URL% > NUL
+start "OVMFC - Client" cmd /k "python ./src/frontend/server.py %BACKEND_URL%" > NUL

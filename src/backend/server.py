@@ -78,9 +78,7 @@ async def get_bsp(job_id: str):
         filename=bsp_name,
         headers={
             "Content-Disposition": f'attachment; filename="{bsp_name}"',
-            "X-Debug-Endpoint": "get_bsp"
         }
-
     )
 
 

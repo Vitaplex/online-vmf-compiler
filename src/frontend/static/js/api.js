@@ -1,5 +1,7 @@
 import { RESPONSE_OUTPUT } from "./main.js";
 
+export let NODE_NAME = null;
+
 export async function getExistingGameFiles(filePaths, game) {
     const params = new URLSearchParams({ game: game });
 
@@ -9,29 +11,29 @@ export async function getExistingGameFiles(filePaths, game) {
 }
 
 export async function getConfiguration() {
-    const response = await fetch("/api/config");
+    const response = await fetchFromApi("/api/config");
     await isOk(response)
     return await response.json();
 }
 
 export async function getCompileJob(jobId) {
-    const response = await fetch("/api/compile/" + jobId);
+    const response = await fetchFromApi("/api/compile/" + jobId);
     return await response.json();
 }
 
 export async function cancelCompileJob(jobId) {
-    const response = await fetch("/api/compile/" + jobId, { method: "DELETE" });
+    const response = await fetchFromApi("/api/compile/" + jobId, { method: "DELETE" });
     return await response.json();
 }
 
 export async function getJob(jobId) {
-    const response = await fetch("/api/compile/" + jobId);
+    const response = await fetchFromApi("/api/compile/" + jobId);
     await isOk(response);
     return await response.json();
 }
 
 export async function getJobCount() {
-    const response = await fetch("/api/jobs-count/");
+    const response = await fetchFromApi("/api/jobs-count");
     await isOk(response);
     return await response.text();
 }
@@ -57,7 +59,7 @@ export async function uploadFileForGame(fileData, path, selectedGame) {
 async function isOk(response) {
     // Backend unavailable
 
-    if (response.status != 200) {
+    if (response.status != 200 && response.status != 307) {
         const text = await response.text();
         if (response.status == 502) {
             RESPONSE_OUTPUT.classList.add("error");
@@ -71,22 +73,56 @@ async function isOk(response) {
     }
 }
 
+async function fetchFromApi(url, options = {}) {
+    const headers = getRequestHeaders({
+        ...(options.headers || {})
+    });
+
+    const response = await fetch(url, {
+        ...options,
+        headers
+    });
+
+    updateNodeName(response);
+
+    return response;
+}
+
+function getRequestHeaders(headers = {}) {
+    if (NODE_NAME) {
+        headers["X-Preferred-Node"] = NODE_NAME;
+    }
+
+    return headers;
+}
+
 async function sendRequestAsync(method, url, body) {
-    return await fetch(url, {
+    return await fetchFromApi(url, {
         method: method,
-        body: JSON.stringify(body),
-        headers: method == "GET" ? null : {
-            "Content-Type": "application/json; charset=UTF-8"
-        }
-    })
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        headers: getRequestHeaders(
+            method !== "GET" ? {
+                "Content-Type": "application/json; charset=UTF-8"
+            } : {}
+        )
+    });
 }
 
 async function sendFileAsync(url, file) {
-    return await fetch(url, {
+    return await fetchFromApi(url, {
         method: "POST",
         body: file,
-        headers: {
+        headers: getRequestHeaders({
             "Content-Type": "application/octet-stream"
-        }
-    })
+        })
+    });
+}
+// CLUSTER-specific
+function updateNodeName(response) {
+    const nodeName = response.headers.get("X-Served-By");
+
+    if (nodeName) {
+        NODE_NAME = nodeName;
+        console.log("Backend node:", NODE_NAME);
+    }
 }
