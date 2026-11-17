@@ -10,7 +10,8 @@
 
 ### Setup game files
 in `config.json`, define the absolute path to the game directories of the games you want to compile maps for, aswell as the name of the vbsp, vvis and vrad-files to be used.
-`sourceVmfs` is the directory where the compiled maps will be stored. It can also be an absolute path, if you want to store it somewhere else
+`sourceVmfs` is the directory where the compiled maps will be stored.  
+It can also be an absolute path, if you want to store it somewhere else
 ```json
 [
     {
