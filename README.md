@@ -2,14 +2,54 @@
 
 ![logo](/src/frontend/static/media/usage.jpg)  
 
+
+## Installation setup and start
+
+### 1) Setup game files
+> If you have your games installed in Steams default directory, can skip this step
+
+in `config.json`, define the absolute path to the game directories of the games you want to compile maps for, aswell as the name of the vbsp, vvis and vrad-files to be used.
+`sourceVmfs` is the directory where the compiled maps will be stored.  
+It can also be an absolute path, if you want to store it somewhere else
+```json
+[
+    {
+        "name": "Garry's Mod",
+        "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod",
+        "compilerPath": "bin",
+        "vbsp": "vbsp.exe",
+        "vvis": "vvis.exe",
+        "vrad": "vrad.exe",
+        "assetDir": "garrysmod",
+        "sourceVmfs": "mapsrc"
+    },
+    {
+        "name": "Team Fortress 2",
+        "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2",
+        "compilerPath": "bin",
+        "vbsp": "vbsp.exe",
+        "vvis": "vvis.exe",
+        "vrad": "vrad.exe",
+        "assetDir": "tf2",
+        "sourceVmfs": "mapsrc"
+    }
+]
+```
+
+### 2) Application startup
+In the project root, install dependencies with `python -m pip install -r requirements.txt`, then run any of the .bat files fitting your use case (`run_frontend_backend.bat` is the most relevant one for standalone non-clustered setup)
+```
+cd online-vmf-compiler
+.\run_frontend_backend.bat
+```
+
+## About
 Gimmicky application for offloading Source engine map compiling tasks to a remote server.  
 * Parses the .vmf file
 * Resolves user-submitted custom assets using **webkitdirectory**.  
-  * **User submitted files are uploaded and persisted to the server.**
-  * Referenced models include all provided same-stem companion files (such as
-    `.phy`, `.vvd`, `.dx80.vtx`, `.dx90.vtx`, `.sw.vtx`, and `.ani`). Each file
-    is checked independently, so missing related files are uploaded even when the
-    model itself already exists on the backend.
+  * **The directory selected in "Select custom files"-section" will be available to the server. Files used in the .vmf are uploaded and persisted to the server.**
+  * Referenced models include all provided related files (`.vmf`-file referencing `model001.mdl` will also fetch related models such as `model001.phy`, `model001.vvd`, `model001.dx80.vtx`, `model001.dx90.vtx`, `model001.sw.vtx`, and `model001.ani` if they are also found).  
+    Each file is checked independently, so missing related files are uploaded even when the model itself already exists on the backend.
 * No login
 * Compile multiple files at the same time
 * **Job-management**: see compile job's status (status and compile logs in real-time)
@@ -73,13 +113,3 @@ remains active until a subsequent valid edit. Listeners stop on service shutdown
 ## Future features
 * [x] Load-balancer middleware to spread compiler tasks across multiple computers (cluster setup)?
 * [ ] Packing custom assets automatically?
-
-## Tests
-
-Install dependencies with `python -m pip install -r requirements.txt`, then run
-`python -m unittest discover -s tests -v`. The routing tests use in-process
-applications and mocked backend requests; no game installation or running
-services are required.
-
-Frontend asset-selection and job-history tests require Node.js 22 or newer and run with
-`node --test tests\test_custom_assets.mjs tests\test_job_history.mjs`.
