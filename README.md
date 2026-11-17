@@ -7,6 +7,34 @@
 
 
 ## Installation setup and start
+
+### Setup game files
+in `config.json`, define the absolute path to the game directories of the games you want to compile maps for, aswell as the name of the vbsp, vvis and vrad-files to be used.
+`sourceVmfs` is the directory where the compiled maps will be stored. It can also be an absolute path, if you want to store it somewhere else
+```json
+[
+    {
+        "name": "Garry's Mod",
+        "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\GarrysMod",
+        "compilerPath": "bin\\win64",
+        "vbsp": "vbsp++.exe",
+        "vvis": "vvis++.exe",
+        "vrad": "vrad++.exe",
+        "assetDir": "garrysmod",
+        "sourceVmfs": "mapsrc"
+    },
+    {
+        "name": "Team Fortress 2",
+        "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2",
+        "compilerPath": "bin",
+        "vbsp": "vbsp.exe",
+        "vvis": "vvis.exe",
+        "vrad": "vrad.exe",
+        "assetDir": "tf2",
+        "sourceVmfs": "mapsrc"
+    }
+]
+```
 In the project root, install dependencies with `python -m pip install -r requirements.txt`, then run any of the .bat files fitting your use case (`run_frontend_backend.bat` is the most relevant one for standalone non-clustered setup)
 ```
 cd online-vmf-compiler
