@@ -36,6 +36,8 @@ It can also be an absolute path, if you want to store it somewhere else
     }
 ]
 ```
+
+### Application startup
 In the project root, install dependencies with `python -m pip install -r requirements.txt`, then run any of the .bat files fitting your use case (`run_frontend_backend.bat` is the most relevant one for standalone non-clustered setup)
 ```
 cd online-vmf-compiler
