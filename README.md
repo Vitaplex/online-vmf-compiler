@@ -1,9 +1,6 @@
 # Online VMF compiler 
 
-<div style="width:128px;">
-
-![logo](/src/frontend/static/media/logo.png)  
-</div>
+![logo](/src/frontend/static/media/usage.jpg)  
 
 Gimmicky application for offloading Source engine map compiling tasks to a remote server.  
 * Parses the .vmf file
