@@ -50,7 +50,7 @@ body.loading {
 header {
     margin-block: 1em;
     background-color: var(--header-color);
-    height: 4em;
+    min-height: 4em;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -169,8 +169,97 @@ button img {
     padding-left: 1em;
 }
 
-#input-ticket {
-    right: 0px;
+#input-ticket,
+#users-previous-jobs summary {
+    background-color: var(--textarea-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    font-family: monospace;
+    padding: 0.35em 0.5em;
+}
+
+#users-previous-jobs {
+    position: relative;
+    font-family: monospace;
+    width: 42ch;
+    max-width: calc(100vw - 2em);
+    min-width: 0;
+    flex-shrink: 0;
+    margin-inline-end: 1em;
+}
+
+#users-previous-jobs summary,
+.job-history-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#users-previous-jobs summary::after {
+    content: "";
+    width: 0.4em;
+    height: 0.4em;
+    border-right: 1px solid;
+    border-bottom: 1px solid;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+}
+
+#users-previous-jobs summary[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: default;
+}
+
+#users-previous-jobs summary .job-history-date {
+    display: none;
+}
+
+.job-history-list {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    min-width: 100%;
+    width: max-content;
+    max-width: calc(100vw - 2em);
+    max-height: 18rem;
+    overflow: auto;
+    background-color: var(--textarea-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.25em;
+    margin-top: 0.25em;
+    z-index: 64;
+}
+
+.job-history-item {
+    width: 100%;
+    height: auto;
+    padding: 0.5em;
+    border: 0;
+    background-color: transparent;
+    color: var(--text-main);
+    font: inherit;
+}
+
+.job-history-item[aria-current="true"] {
+    background-color: var(--color-secondary);
+}
+
+.job-history-id {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.job-history-date {
+    flex-shrink: 0;
+    font-size: 0.7em;
+    opacity: 0.75;
 }
 
 #button-input-ticket {
@@ -184,6 +273,7 @@ button.inactive {
 
 #header-content-right {
     display: flex;
+    flex-wrap: wrap;
     width: stretch;
     margin-inline-end: 4em;
     gap: 1em;
@@ -249,11 +339,19 @@ button.inactive {
 }
 
 .progress-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     padding: 2px;
     width: 100%;
     padding-inline: 2em;
     text-align: center;
     border-inline: 0.5px solid var(--border-color);
+}
+
+.progress-date {
+    font-size: 0.65em;
+    white-space: nowrap;
 }
 
 .progress-item.queued {

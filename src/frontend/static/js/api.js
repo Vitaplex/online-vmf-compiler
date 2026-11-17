@@ -1,4 +1,4 @@
-import { RESPONSE_OUTPUT } from "./main.js";
+import { RESPONSE_OUTPUT, updateClusterNode } from "./main.js";
 
 export let NODE_NAME = null;
 
@@ -123,6 +123,7 @@ function updateNodeName(response) {
 
     if (nodeName) {
         NODE_NAME = nodeName;
+        updateClusterNode(nodeName);
         console.log("Backend node:", NODE_NAME);
     }
 }

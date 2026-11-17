@@ -10,17 +10,23 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 from helpers import *
+from config_watcher import ConfigFileWatcher
 
 class LoadBalancerService:
     def __init__(self):
-        self.nodes = parse_nodes_file("nodes.json")
-        pass
+        self.config_path = get_config_path("nodes.json", os.path.join("loadbalancer", "nodes.json"))
+        self.config_watcher = ConfigFileWatcher(self.config_path, self.reload_config)
+        self.reload_config()
+
+    def reload_config(self):
+        self.nodes = parse_nodes_file(self.config_path)
 
     def resolve_node(self, prefered_node_name):
         if (node := self.get_node_by_name(prefered_node_name)) is not None:
             return node
             
-        weights_resolved = [resolve_weights(node, self.nodes)for node in self.nodes]
+        nodes = self.nodes
+        weights_resolved = [resolve_weights(node, nodes)for node in nodes]
         nodes_with_jobs = [get_node_job_count(node)for node in weights_resolved]
         fit_node = resolve_best_node(nodes_with_jobs)
 
@@ -61,10 +67,10 @@ class LoadBalancerService:
 
         return matches[0] if matches else None
 def parse_nodes_file(filename):
-    nodes_path = try_get_local_config_override_path(filename) or try_get_path(filename) or try_get_path("./backend/config.json")
-    with open(nodes_path, "r") as f:
-        content = f.read()
-        return json.loads(content)
+    nodes_path = filename if os.path.isabs(filename) else get_config_path(
+        filename, os.path.join("loadbalancer", filename)
+    )
+    return read_json_config(nodes_path)
 
 def resolve_weights(node, all_nodes):
     total_weight = sum(nd.get("weight", 0) or 0 for nd in all_nodes)
@@ -98,7 +104,7 @@ def resolve_best_node(nodes):
     ]
 
     if not available_nodes:
-        raise RuntimeError("No available nodes")
+        return None
 
     return random.choices(
         available_nodes,

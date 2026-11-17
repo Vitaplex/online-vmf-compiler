@@ -50,6 +50,11 @@ async def proxy(path:str, request: Request):
             url=url,
             params=request.query_params,
             data=await request.body(),
+            headers={
+                key: value
+                for key, value in request.headers.items()
+                if key.lower() in {"content-type", "x-preferred-node"}
+            },
             timeout=300
         )
 
@@ -65,7 +70,8 @@ async def proxy(path:str, request: Request):
                     "content-length",
                     "cache-control",
                     "last-modified",
-                    "etag"
+                    "etag",
+                    "x-served-by"
                 }
             }
         )

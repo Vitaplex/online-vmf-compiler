@@ -9,21 +9,28 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 from helpers import *
-
-DIRECTORIES = get_configured_directories()
-VPK_FILES = get_vpk_files_for_all_directories(DIRECTORIES)
+from config_watcher import ConfigFileWatcher
 
 class GameFileManager:
     def __init__(self):
-        log()
+        self.config_path = get_config_path("config.json", os.path.join("backend", "config.json"))
+        self.config_watcher = ConfigFileWatcher(self.config_path, self.reload_config)
+        self.reload_config()
+
+    def reload_config(self):
+        directories = get_configured_directories(self.config_path)
+        vpk_files = get_vpk_files_for_all_directories(directories)
+        log(directories)
+        self._configuration = directories, vpk_files
 
     def get_game_files_not_in_directory(self, files, name):
-        game = self.get_directory(name)
+        directories, vpk_files = self._configuration
+        game = index(0, [game for game in directories if game.get("name") == name])
         name = game.get('name')
         path = game.get('path')
         gameDir = game.get('assetDir')
 
-        vpk_for_game = [vpk for vpk  in VPK_FILES if vpk.get(name) != None][0].get(name)
+        vpk_for_game = [vpk for vpk in vpk_files if vpk.get(name) != None][0].get(name)
 
         path_game_dir = os.path.join(path,gameDir)
         files_not_in_local_dirs = get_game_files(path_game_dir, vpk_for_game, files)
@@ -49,10 +56,10 @@ class GameFileManager:
             return { "success": False, "error": ex }
 
     def get_config(self):
-        return DIRECTORIES
+        return self._configuration[0]
 
     def get_directory(self, name):
-        return index(0, [dir for dir in DIRECTORIES if dir.get('name') == name])
+        return index(0, [dir for dir in self.get_config() if dir.get('name') == name])
 
     
 
@@ -85,11 +92,11 @@ def normalize_filename(file:str):
         file = file.lower()
     return file
 
-def log():
+def log(directories):
     print()
     print("Configured directories")
     print("======================")
-    for item in DIRECTORIES:
+    for item in directories:
         name = item.get("name")
         path = item.get("path")
         print("Name: " + name + "\nL Path: " + path)

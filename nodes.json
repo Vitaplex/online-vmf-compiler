@@ -1,17 +1,7 @@
 [
     {
         "name": "Toppington",
-        "address": "http://192.168.0.74:7675",
-        "weight": 5
-    },
-    {
-        "name": "Middlington",
-        "address": "http://192.168.0.75:7675",
-        "weight": 7
-    },
-    {
-        "name": "Bottomington",
-        "address": "http://192.168.0.76:7675",
+        "address": "http://localhost:7675",
         "weight": 5
     }
 ]

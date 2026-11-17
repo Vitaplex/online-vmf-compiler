@@ -14,14 +14,15 @@
         <img id="logo" src="/static/media/logo.png">
         <h1>Online .vmf Compiler</h1>
         <div id="header-content-right">
+            <code id="cluster-node" title="Cluster node for this compile job" style="display: none"></code>
             <code id="label-running-jobs" title="Current running jobs">0</code>
-            <input id="input-ticket" type="text" placeholder="Ticket ID">
+            <input id="input-ticket" type="text" placeholder="Job ID" aria-label="Job ID">
             <button class="slim" id="button-input-ticket">Get compile job</button>
+            <details id="users-previous-jobs">
+                <summary aria-label="Previous jobs">Previous jobs</summary>
+                <div class="job-history-list"></div>
+            </details>
         </div>
-        <select id="users-previous-jobs">
-            <option value="" disabled selected>Previous jobs</option>
-        </select>
-        <code id="cluster-node"></code>
     </header>
     <main>
         <fieldset class="main-section" id="section-left">
@@ -41,11 +42,12 @@
                     <div class="flex fd-tb">
                         <label for="ignore-missing-files" title="Ignore files not found locally or uploaded by the user">
                             <input type="checkbox" id="ignore-missing-files">
-                            Ignore missing files
+                            <img height="20" src="/static/media/ignore_custom.png" alt="Ignore missing files">
                         </label>
                         <label for="ignore-visclusters" title="Only useful if using vvis++! Removes func_visclusters from the .vmf before uploading to server. Does not modify your local version.">
                             <input type="checkbox" id="ignore-visclusters">
-                            Ignore visclusters</label>
+                            <img height="20" src="/static/media/ignore_viscluster.png" alt="Ignore visclusters">
+                        </label>
                     </div>
                     <button class="inactive" id="download-button"><a style="color:unset; text-decoration: none"
                             href="r">Download</a></button>
@@ -79,15 +81,19 @@
                     <div id="progress-bar" class="inactive">
                         <div id="progress-vbsp" class="progress-item">
                             <span>VBSP</span>
+                            <small class="progress-date" hidden></small>
                         </div>
                         <div id="progress-vvis" class="progress-item">
                             <span>VVIS</span>
+                            <small class="progress-date" hidden></small>
                         </div>
                         <div id="progress-vrad" class="progress-item">
                             <span>VRAD</span>
+                            <small class="progress-date" hidden></small>
                         </div>
                         <div id="progress-finished" class="progress-item">
                             <span>Finished!</span>
+                            <small class="progress-date" hidden></small>
                         </div>
                     </div>
                     <button id="button-cancel-compile" class="inactive slim">Cancel</button>

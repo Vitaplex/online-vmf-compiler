@@ -93,11 +93,42 @@ function getSolidMaterials(solid) {
 }
 
 export function resolveCustomFilesInVmf(userCustomFiles, filesNotInLocalDir) {
-    const userCustomFilesSet = new Set(userCustomFiles.map(ucf => ucf.path.toUpperCase()));
+    const userCustomFilesSet = new Set(userCustomFiles.map(ucf => normalizeAssetPath(ucf.path)));
     const fileNotInLocalDirSet = new Set(filesNotInLocalDir);
 
-    const difference = new Set([...fileNotInLocalDirSet].filter(x => !userCustomFilesSet.has(x.toUpperCase())));
+    const difference = new Set([...fileNotInLocalDirSet].filter(x => !userCustomFilesSet.has(normalizeAssetPath(x))));
     return difference;
+}
+
+export function getCustomFilesForAssets(userCustomFiles, assetPaths) {
+    const requiredPaths = new Set(assetPaths.map(normalizeAssetPath));
+    const modelStems = [...requiredPaths]
+        .filter(path => path.startsWith("models/") && path.endsWith(".mdl"))
+        .map(path => path.slice(0, -4));
+    const materialStems = [...requiredPaths]
+        .filter(path => path.startsWith("materials/") && path.endsWith(".vmt"))
+        .map(path => path.slice(0, -4));
+    const selectedFiles = new Map();
+
+    for (const customFile of userCustomFiles) {
+        const path = normalizeAssetPath(customFile.path);
+        const modelCompanion = modelStems.some(stem =>
+            path.startsWith(stem + ".") && !path.slice(stem.length + 1).includes("/"));
+        const materialTexture = materialStems.some(stem => path === stem + ".vtf");
+        if (requiredPaths.has(path) || modelCompanion || materialTexture) {
+            selectedFiles.set(path, customFile);
+        }
+    }
+
+    return [...selectedFiles.values()];
+}
+
+function normalizeAssetPath(path) {
+    let normalized = path.replace(/\\/g, "/").toLowerCase();
+    if (normalized.startsWith("materials/") && !/\.(vmt|vtf)$/.test(normalized)) {
+        normalized += ".vmt";
+    }
+    return normalized;
 }
 
 function getFormattedWebkitPath(fileObject) {

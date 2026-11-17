@@ -4,6 +4,7 @@ import { handleCompileVmfClick } from "./vmfCompile.js";
 import { addUserCustomFilesInputs } from "./userCustomFilesHelpers.js";
 import { disableElement, enableElement } from "./htmlHelpers.js";
 import { setupCompilerParameterSnippets } from "./compileParameters.js";
+import { addJobToHistory, parseJobHistory } from "./jobHistory.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll("button").forEach(btn => {
@@ -12,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     addUserCustomFilesInputs();
+    setupPreviousJobs();
     await setupCancelCompileButton();
     await setupCompileJobButton();
     await setupDownloadButton();
@@ -26,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 export const RESPONSE_OUTPUT = document.getElementById("response-output");
 const CLUSTER_NODE = document.getElementById("cluster-node");
+const DROPDOWN_PREVIOUS_JOBS = document.getElementById("users-previous-jobs");
 const BUTTON_COMPILE_VMF = document.getElementById("button-compile-vmf");
 const BUTTON_COMPILE_VMF_ORIGINALTEXT = BUTTON_COMPILE_VMF.querySelector("span")?.innerText;
 const BUTTON_DOWNLOAD = document.getElementById("download-button");
@@ -48,6 +51,112 @@ const PROGRESS_BAR = {
 
 let VMF_FILE;
 let JOB_ID;
+let PREVIOUS_JOBS = [];
+const JOB_HISTORY_STORAGE_KEY = "ovmfc.previousJobs";
+
+export function updateClusterNode(nodeName) {
+    CLUSTER_NODE.innerText = nodeName;
+    CLUSTER_NODE.style.display = nodeName ? "" : "none";
+}
+
+function setCurrentJob(jobId) {
+    JOB_ID = jobId;
+    INPUT_GET_COMPILE_JOB.value = jobId;
+    updatePreviousJobSelection();
+    updateStatuses([]);
+}
+
+function setupPreviousJobs() {
+    try {
+        const storedHistory = localStorage.getItem(JOB_HISTORY_STORAGE_KEY);
+        PREVIOUS_JOBS = parseJobHistory(storedHistory);
+        if (storedHistory !== null && storedHistory !== JSON.stringify(PREVIOUS_JOBS)) {
+            savePreviousJobs();
+        }
+    } catch (error) {
+        reportJobHistoryError("load", error);
+    }
+
+    populatePreviousJobs();
+    const summary = DROPDOWN_PREVIOUS_JOBS.querySelector("summary");
+    summary.addEventListener("click", event => {
+        if (PREVIOUS_JOBS.length === 0) event.preventDefault();
+    });
+    DROPDOWN_PREVIOUS_JOBS.addEventListener("click", event => {
+        const button = event.target.closest("button[data-job-id]");
+        if (!button) return;
+        INPUT_GET_COMPILE_JOB.value = button.dataset.jobId;
+        DROPDOWN_PREVIOUS_JOBS.open = false;
+        summary.focus();
+        BUTTON_GET_COMPILE_JOB.click();
+    });
+    DROPDOWN_PREVIOUS_JOBS.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            DROPDOWN_PREVIOUS_JOBS.open = false;
+            summary.focus();
+        }
+    });
+    document.addEventListener("click", event => {
+        if (!DROPDOWN_PREVIOUS_JOBS.contains(event.target)) DROPDOWN_PREVIOUS_JOBS.open = false;
+    });
+}
+
+function populatePreviousJobs() {
+    const list = DROPDOWN_PREVIOUS_JOBS.querySelector(".job-history-list");
+    list.replaceChildren();
+    for (const job of PREVIOUS_JOBS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "job-history-item";
+        button.dataset.jobId = job.jobId;
+        renderJobDetails(button, job);
+        list.appendChild(button);
+    }
+    DROPDOWN_PREVIOUS_JOBS.querySelector("summary").setAttribute("aria-disabled", PREVIOUS_JOBS.length === 0);
+    updatePreviousJobSelection();
+}
+
+function updatePreviousJobSelection() {
+    const job = PREVIOUS_JOBS.find(entry => entry.jobId === JOB_ID);
+    renderJobDetails(DROPDOWN_PREVIOUS_JOBS.querySelector("summary"), job);
+    DROPDOWN_PREVIOUS_JOBS.querySelectorAll("button[data-job-id]").forEach(button => {
+        button.setAttribute("aria-current", button.dataset.jobId === JOB_ID);
+    });
+}
+
+function renderJobDetails(element, job) {
+    const id = document.createElement("span");
+    id.className = "job-history-id";
+    id.innerText = job?.jobId ?? "Previous jobs";
+    const date = document.createElement("small");
+    date.className = "job-history-date";
+    date.innerText = job?.startedAt ? new Date(job.startedAt).toLocaleString() : "";
+    date.hidden = !job?.startedAt;
+    element.replaceChildren(id, date);
+    element.title = date.innerText ? `${id.innerText} - ${date.innerText}` : id.innerText;
+}
+
+function rememberJob(jobId, startedAt = null) {
+    const updatedJobs = addJobToHistory(PREVIOUS_JOBS, jobId, startedAt);
+    if (updatedJobs === PREVIOUS_JOBS) return;
+    PREVIOUS_JOBS = updatedJobs;
+    populatePreviousJobs();
+    savePreviousJobs();
+}
+
+function savePreviousJobs() {
+    try {
+        localStorage.setItem(JOB_HISTORY_STORAGE_KEY, JSON.stringify(PREVIOUS_JOBS));
+    } catch (error) {
+        reportJobHistoryError("save", error);
+    }
+}
+
+function reportJobHistoryError(action, error) {
+    console.error(`Could not ${action} previous jobs`, error);
+    RESPONSE_OUTPUT.classList.add("error");
+    RESPONSE_OUTPUT.value = `Could not ${action} previous jobs: ${error.message}`;
+}
 
 function setupScrollingForCompilerOutput() {
     setInterval(() => {
@@ -80,9 +189,10 @@ async function setupGameSelect() {
 
 async function setupCompileJobButton() {
     BUTTON_GET_COMPILE_JOB.addEventListener("click", async () => {
-        const jobId = INPUT_GET_COMPILE_JOB.value;
-        JOB_ID = jobId;
-        getCompileJobStatus(jobId, true);
+        const jobId = INPUT_GET_COMPILE_JOB.value.trim();
+        if (!jobId) return;
+        setCurrentJob(jobId);
+        await getCompileJobStatus(jobId, true);
     });
 }
 
@@ -141,9 +251,11 @@ async function setupVmfFileInput() {
                 compilerParameters);
 
             if (compileResponse) {
-                JOB_ID = compileResponse.jobId;
+                const jobId = compileResponse.jobId;
+                setCurrentJob(jobId);
+                rememberJob(jobId);
                 // 500ms wait for the compile process to start, and the log file to be written
-                setTimeout(async () => await getCompileJobStatus(JOB_ID), 500);
+                setTimeout(async () => await getCompileJobStatus(jobId), 500);
                 return;
             }
             else {
@@ -188,8 +300,8 @@ function readAndParseVmfFile(fileHandle) {
 }
 
 async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
+    if (!jobId || JOB_ID !== jobId) return;
     RESPONSE_OUTPUT.classList.remove("error");
-    if (!jobId) return;
 
     let finished = false;
     let response;
@@ -197,19 +309,23 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
 
     uiState_CompilingMap();
 
-    while (!finished) {
+    while (!finished && JOB_ID === jobId) {
         try {
             response = await api.getCompileJob(jobId);
-            
-            CLUSTER_NODE.innerText = api.NODE_NAME;
+            if (JOB_ID !== jobId) return;
 
             if (response.success == false) {
                 COMPILER_OUTPUT.value = "";
                 RESPONSE_OUTPUT.classList.add("error");
                 RESPONSE_OUTPUT.value = "No job with id " + jobId + " found";
                 finished = true;
+                if (VMF_FILE) uiState_ReadyToCompile();
+                else uiState_InitialState();
                 break;
             }
+
+            const statuses = response.statuses ?? [];
+            if (response.success === true) rememberJob(jobId, statuses[0]?.time ?? null);
 
             if (errorCount > 5) {
                 finished = true;
@@ -218,9 +334,9 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
 
             COMPILER_OUTPUT.value = response.log?.trim();
 
-            updateStatuses(response.statuses);
+            updateStatuses(statuses);
 
-            finished = response.statuses.filter(rs => rs.tag == "finished").length > 0;
+            finished = statuses.some(status => status.tag === "finished");
 
             if (fromCompileJobButton && finished) {
                 uiState_GetFinishedCompileJob();
@@ -251,43 +367,25 @@ async function getCompileJobStatus(jobId, fromCompileJobButton = false) {
 
 function updateStatuses(statuses) {
     const statusTypes = ["queued", "failed", "running", "finished"];
+    const stages = [
+        ["vbsp", PROGRESS_BAR.vbspStatus],
+        ["vvis", PROGRESS_BAR.vvisStatus],
+        ["vrad", PROGRESS_BAR.vradStatus],
+        ["finished", PROGRESS_BAR.finishedStatus]
+    ].map(([tag, element]) => ({ element, status: statuses.find(status => status.tag === tag) }));
+    const currentStage = stages.findLastIndex(stage => stage.status);
 
     enableElement(PROGRESS_BAR.progressBar);
-
-    const vbsp = statuses.filter(rs => rs.tag == "vbsp");
-    const vvis = statuses.filter(rs => rs.tag == "vvis");
-    const vrad = statuses.filter(rs => rs.tag == "vrad");
-    const finished = statuses.filter(rs => rs.tag == "finished");
-
-    if (vbsp.length > 0 && !PROGRESS_BAR.vbspStatus.classList.contains("finished")) {
-        setStatus(PROGRESS_BAR.vbspStatus, "running");
-        setStatus(PROGRESS_BAR.vvisStatus, "queued");
-        setStatus(PROGRESS_BAR.vradStatus, "queued");
-        setStatus(PROGRESS_BAR.finishedStatus, "queued");
-    }
-    if (vvis.length > 0 && !PROGRESS_BAR.vvisStatus.classList.contains("finished")) {
-        setStatus(PROGRESS_BAR.vbspStatus, "finished");
-        setStatus(PROGRESS_BAR.vvisStatus, "running");
-        setStatus(PROGRESS_BAR.vradStatus, "queued");
-        setStatus(PROGRESS_BAR.finishedStatus, "queued");
-    }
-    if (vrad.length > 0 && !PROGRESS_BAR.vradStatus.classList.contains("finished")) {
-        setStatus(PROGRESS_BAR.vbspStatus, "finished");
-        setStatus(PROGRESS_BAR.vvisStatus, "finished");
-        setStatus(PROGRESS_BAR.vradStatus, "running");
-        setStatus(PROGRESS_BAR.finishedStatus, "queued");
-    }
-    if (finished.length > 0) {
-        setStatus(PROGRESS_BAR.vbspStatus, "finished");
-        setStatus(PROGRESS_BAR.vvisStatus, "finished");
-        setStatus(PROGRESS_BAR.vradStatus, "finished");
-        setStatus(PROGRESS_BAR.finishedStatus, "finished");
-    }
-
-    function setStatus(element, status) {
+    stages.forEach(({ element, status }, index) => {
         element.classList.remove(...statusTypes);
-        element.classList.add(status);
-    }
+        element.classList.add(currentStage === stages.length - 1 || index < currentStage
+            ? "finished"
+            : index === currentStage ? "running" : "queued");
+        const date = element.querySelector(".progress-date");
+        date.innerText = status?.time ? new Date(status.time).toLocaleString() : "";
+        date.title = status?.time ?? "";
+        date.hidden = !status?.time;
+    });
 }
 
 function uiState_ReadyToCompile() {

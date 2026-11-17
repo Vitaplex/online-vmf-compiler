@@ -2,6 +2,7 @@
 import json
 import socket
 import uvicorn
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +18,16 @@ compile_job_service = CompileJobService(game_file_manager)
 
 
 # FastAPI application
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app):
+    game_file_manager.config_watcher.start()
+    try:
+        yield
+    finally:
+        game_file_manager.config_watcher.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # CORS configuration
 app.add_middleware(
@@ -87,7 +97,7 @@ async def get_compile_job(job_id: str, response: Response):
     job_details = compile_job_service.get_compile_job(job_id)
 
     if not job_details:
-        response.status_code == status.HTTP_404_NOT_FOUND
+        response.status_code = status.HTTP_404_NOT_FOUND
         return {"success": False, "error": "Job not found"}
 
     return job_details

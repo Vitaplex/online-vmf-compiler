@@ -1,4 +1,5 @@
 import json
+from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,8 +10,18 @@ import uvicorn
 
 from loadbalancer_service import LoadBalancerService
 
-app = FastAPI()
 loadbalancer_service = LoadBalancerService()
+
+@asynccontextmanager
+async def lifespan(app):
+    loadbalancer_service.config_watcher.start()
+    try:
+        yield
+    finally:
+        loadbalancer_service.config_watcher.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

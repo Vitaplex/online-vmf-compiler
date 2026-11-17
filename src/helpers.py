@@ -12,16 +12,24 @@ def try_connect_endpoint(endpoint):
     except:
         return False
 
-def get_configured_directories():
-    config_path = try_get_local_config_override_path("config.json") or try_get_path("config.json") or try_get_path("./backend/config.json")
+def get_config_path(filename, fallback):
+    config_path = try_get_local_config_override_path(filename) or try_get_path(filename) or try_get_path(fallback)
     if config_path is None:
-        raise FileNotFoundError("Config file not found")
-    
-    print("Config path: " + config_path)
+        raise FileNotFoundError(f"Config file not found: {filename}")
+    return config_path
+
+def read_json_config(config_path):
     with open(config_path, "r") as config_file:
-        content = config_file.read()
-        config = json.loads(content)
-        return config
+        config = json.load(config_file)
+    if not isinstance(config, list) or any(not isinstance(entry, dict) for entry in config):
+        raise ValueError(f"{config_path} must contain a JSON array of objects")
+    return config
+
+def get_configured_directories(config_path=None):
+    if config_path is None:
+        config_path = get_config_path("config.json", os.path.join("backend", "config.json"))
+    print("Config path: " + config_path)
+    return read_json_config(config_path)
 
 # CLUSTER-specific - get the local config.json override
 # If a cluster node uses mounted filesystem for the game files
