@@ -8,8 +8,8 @@
 
 ## Installation setup and start
 
-### Setup game files
-> If you have your games installed in Steams default directory, you don't need to modify the path. Only update the tools++ paths
+### 1) Setup game files
+> If you have your games installed in Steams default directory, can skip this step
 
 in `config.json`, define the absolute path to the game directories of the games you want to compile maps for, aswell as the name of the vbsp, vvis and vrad-files to be used.
 `sourceVmfs` is the directory where the compiled maps will be stored.  
@@ -39,7 +39,7 @@ It can also be an absolute path, if you want to store it somewhere else
 ]
 ```
 
-### Application startup
+### 2) Application startup
 In the project root, install dependencies with `python -m pip install -r requirements.txt`, then run any of the .bat files fitting your use case (`run_frontend_backend.bat` is the most relevant one for standalone non-clustered setup)
 ```
 cd online-vmf-compiler
