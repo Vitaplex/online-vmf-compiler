@@ -1,5 +1,3 @@
-# Online VMF compiler 
-
 ![logo](/src/frontend/static/media/usage.jpg)  
 
 
