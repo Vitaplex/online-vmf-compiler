@@ -5,6 +5,15 @@
 ![logo](/src/frontend/static/media/logo.png)  
 </div>
 
+
+## Installation setup and start
+In the project root, install dependencies with `python -m pip install -r requirements.txt`, then run any of the .bat files fitting your use case (`run_frontend_backend.bat` is the most relevant one for standalone non-clustered setup)
+```
+cd online-vmf-compiler
+.\run_frontend_backend.bat
+```
+
+## About
 Gimmicky application for offloading Source engine map compiling tasks to a remote server.  
 * Parses the .vmf file
 * Resolves user-submitted custom assets using **webkitdirectory**.  
@@ -76,13 +85,3 @@ remains active until a subsequent valid edit. Listeners stop on service shutdown
 ## Future features
 * [x] Load-balancer middleware to spread compiler tasks across multiple computers (cluster setup)?
 * [ ] Packing custom assets automatically?
-
-## Tests
-
-Install dependencies with `python -m pip install -r requirements.txt`, then run
-`python -m unittest discover -s tests -v`. The routing tests use in-process
-applications and mocked backend requests; no game installation or running
-services are required.
-
-Frontend asset-selection and job-history tests require Node.js 22 or newer and run with
-`node --test tests\test_custom_assets.mjs tests\test_job_history.mjs`.
