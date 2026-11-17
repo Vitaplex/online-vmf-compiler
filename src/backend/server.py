@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from urllib.parse import quote
 
 from game_file_manager import GameFileManager
-from compile_job_service import CompileJobService
+from compile_job_service import CompileJobService, JobOwnershipError
 
 # Dependencies
 game_file_manager = GameFileManager()
@@ -52,6 +52,10 @@ async def home(request: Request):
 @app.get("/api/jobs-count")
 async def get_jobs_count():
     return sum(len(job.get("runningJobs")) for job in compile_job_service.get_running_jobs())
+
+@app.get("/api/running-jobs")
+async def get_running_jobs():
+    return compile_job_service.get_running_job_details()
 
 @app.post("/api/compile")
 async def compile_map(request: Request, game:str, fileName:str):
@@ -105,7 +109,12 @@ async def get_compile_job(job_id: str, response: Response):
 
 @app.delete("/api/compile/{job_id}")
 async def cancel_compile_job(job_id: str):
-    cancel_status = compile_job_service.cancel_compile_job(job_id)
+    try:
+        cancel_status = compile_job_service.cancel_compile_job(job_id)
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except JobOwnershipError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
     if cancel_status is not True:
         raise HTTPException(

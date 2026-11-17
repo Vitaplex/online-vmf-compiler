@@ -2,6 +2,7 @@ import base64
 import glob
 import os
 import signal
+import socket
 import subprocess
 import background
 import psutil
@@ -14,15 +15,52 @@ from helpers import index, get_globby_file_path, error, b64_decode_str, b64_enco
 from game_file_manager import GameFileManager
 
 RUNFILE_NAME = "runfile"
+OWNERFILE_NAME = "owner"
+
+
+class JobOwnershipError(Exception):
+    pass
+
+
+def get_job_owner(job_directory):
+    try:
+        owner = (Path(job_directory) / OWNERFILE_NAME).read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return None
+    if not owner:
+        raise ValueError(f"Empty job owner file in {job_directory}")
+    return owner
+
 
 class CompileJobService:
     def __init__(self, gamefilemanager:GameFileManager):
         self.game_file_manager = gamefilemanager
+        self.node_id = os.environ.get("OVMFC_NODE_ID") or socket.gethostname()
 
     def get_running_jobs(self):
         job_dirs = [{"name": game.get("name"), "path": os.path.join(game.get('path'), game.get('assetDir'), game.get("sourceVmfs"))} for game in self.game_file_manager.get_config()]
-        run_files = [{"name": job_dir.get("name"), "runningJobs": glob.glob(os.path.join(job_dir.get("path"),"**", RUNFILE_NAME))} for job_dir in job_dirs]
+        run_files = [{
+            "name": job_dir["name"],
+            "runningJobs": [
+                run_file
+                for run_file in glob.glob(os.path.join(job_dir["path"], "**", RUNFILE_NAME))
+                if get_job_owner(Path(run_file).parent) == self.node_id
+            ],
+        } for job_dir in job_dirs]
         return run_files
+
+    def get_running_job_details(self):
+        jobs = []
+        for game in self.get_running_jobs():
+            for run_file in game["runningJobs"]:
+                job_dir = Path(run_file).parent
+                vmf = next(job_dir.glob("*.vmf"), None)
+                jobs.append({
+                    "jobId": job_dir.name,
+                    "game": game["name"],
+                    "fileName": vmf.name if vmf else None,
+                })
+        return jobs
 
     def create_compile_job(self, vmf_file, name, file_name):
         game_config = self.game_file_manager.get_directory(name)
@@ -43,6 +81,8 @@ class CompileJobService:
         map_file_path = os.path.join(full_path, file_name) 
         
         try:
+            with open(os.path.join(full_path, OWNERFILE_NAME), "x", encoding="utf-8") as f:
+                f.write(self.node_id)
             with open(map_file_path, 'wb') as f:
                 f.write(vmf_file)
             return { "success": True, "jobId": job_id, "mapFilePath": map_file_path }
@@ -62,6 +102,7 @@ class CompileJobService:
         return { "success": True }
 
     def cancel_compile_job_write_status(self, job_id):
+        self.require_job_owner(job_id)
         job = self.get_compile_job(job_id)
         path = job.get("path")
 
@@ -69,8 +110,9 @@ class CompileJobService:
         self.cancel_compile_job(job_id)
 
     def cancel_compile_job(self, job_id):
+        self.require_job_owner(job_id)
         job = self.get_compile_job(job_id)
-        statuses = job.get("statuses", [])
+        statuses = job.get("statuses") or []
 
         pids = [stat.get("pid") for stat in statuses]
 
@@ -87,6 +129,14 @@ class CompileJobService:
                 break
         return True
 
+    def require_job_owner(self, job_id):
+        job_directory = self.get_files_for_job(job_id)
+        if job_directory is None:
+            raise FileNotFoundError(f"Job {job_id} not found")
+        if get_job_owner(job_directory) != self.node_id:
+            raise JobOwnershipError(
+                f"Job {job_id} is not owned by this backend; cancellation is unsafe"
+            )
 
     def get_compile_job(self, job_id):
         job_filepath = self.get_files_for_job(job_id)
@@ -96,8 +146,12 @@ class CompileJobService:
         status_file = (get_globby_file_path(job_filepath, "status") or {}).get("content")
         
         statuses = parse_status_file(status_file)
+        owner = get_job_owner(job_filepath)
 
-        return {"success": True, "path": job_filepath, "statuses": statuses, "log": log_file }
+        return {
+            "success": True, "path": job_filepath, "statuses": statuses, "log": log_file,
+            "ownerNode": owner, "isOwner": owner == self.node_id,
+        }
 
 
     def get_bsp(self, job_id):

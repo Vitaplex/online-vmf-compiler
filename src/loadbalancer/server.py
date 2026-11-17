@@ -1,4 +1,6 @@
 import json
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import Request, Header, HTTPException
@@ -7,8 +9,9 @@ from fastapi.responses import Response
 from fastapi import FastAPI
 import httpx
 import uvicorn
+from pydantic import BaseModel, TypeAdapter
 
-from loadbalancer_service import LoadBalancerService
+from loadbalancer_service import LoadBalancerService, JobRoutingError
 
 loadbalancer_service = LoadBalancerService()
 
@@ -31,6 +34,51 @@ app.add_middleware(
     expose_headers=["X-Served-By"]
 )
 
+class RunningJob(BaseModel):
+    jobId: str
+    game: str
+    fileName: str | None = None
+
+
+@app.get("/api/stats")
+async def get_statistics():
+    nodes = list(loadbalancer_service.nodes)
+    async with httpx.AsyncClient(timeout=5) as client:
+        async def fetch_node(node):
+            result = {
+                "name": node["name"],
+                "address": node["address"],
+                "weight": node.get("weight", 0),
+            }
+            try:
+                response = await client.get(
+                    f"{node['address'].rstrip('/')}/api/running-jobs"
+                )
+                response.raise_for_status()
+                jobs = TypeAdapter(list[RunningJob]).validate_json(response.content)
+                return result | {
+                    "online": True,
+                    "runningJobs": [job.model_dump() for job in jobs],
+                    "jobCount": len(jobs),
+                    "error": None,
+                }
+            except (httpx.HTTPError, ValueError) as error:
+                logging.getLogger(__name__).warning(
+                    "Could not fetch statistics from %s: %s", node["address"], error
+                )
+                return result | {
+                    "online": False, "runningJobs": None,
+                    "jobCount": None, "error": str(error),
+                }
+
+        results = await asyncio.gather(*(fetch_node(node) for node in nodes))
+
+    return {
+        "nodes": results,
+        "totalRunningJobs": sum(node["jobCount"] for node in results if node["online"]),
+    }
+
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE"])
 async def proxy(path:str, request: Request, x_preferred_node: Annotated[str | None, Header()] = None):
     parts = path.split("/")
@@ -38,7 +86,12 @@ async def proxy(path:str, request: Request, x_preferred_node: Annotated[str | No
     if len(parts) == 2 and parts[0] in ("compile", "bsp"):
         job_id = parts[1]
 
-        node = await loadbalancer_service.resolve_job_node(job_id)
+        try:
+            node = await loadbalancer_service.resolve_job_node(
+                job_id, require_owner=request.method == "DELETE"
+            )
+        except JobRoutingError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
 
         if not node:
             raise HTTPException(

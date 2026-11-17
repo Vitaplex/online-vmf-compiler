@@ -83,6 +83,31 @@ Job-status, cancellation, and BSP requests locate the backend that owns the job.
 A missing job returns HTTP 404; requests requiring node selection return HTTP 503
 when no backend is available.
 
+### Shared storage between nodes
+
+Nodes may use the same network share for job storage; no shared-storage switch
+is needed in `nodes.json`. Multiple nodes finding a job is normal. Status and BSP
+requests prefer its owner when reachable, otherwise they use another node that
+can read the files.
+
+New jobs have an `owner` file containing the creating backend's identity. This
+defaults to the machine hostname. If multiple backends run on the same machine,
+or machines have identical hostnames, set a distinct `OVMFC_NODE_ID` environment
+variable for each backend before starting it. Keep that identity stable across
+restarts; it is separate from the display names in `nodes.json`.
+
+Only the owner includes a job in its running-job lists and counts, preventing
+shared run files from being counted once per node. Cancellation requires a
+reachable, verified owner, because status-file process IDs are local to that
+machine. Both the load balancer and backend reject unsafe cancellation with
+HTTP 409. Conflicting ownership claims also return HTTP 409 instead of an
+unhandled exception.
+
+Restart/upgrade **all backends and the load balancer** for this behavior.
+Existing jobs without an `owner` file remain readable and downloadable, but
+cannot be attributed to a node or safely cancelled through the API. They are
+excluded from per-node running counts; new jobs are tracked automatically.
+
 ### Configurating multiple Nodes
 Edit `nodes.json` in the repository root to set up the Nodes that should be used. A `weight`-parameter can be used to give certain Nodes higher or lower priority, if they have different specifications.
 #### Example Node
@@ -93,6 +118,20 @@ Edit `nodes.json` in the repository root to set up the Nodes that should be used
     "weight": 5
 }
 ```
+
+### Cluster statistics
+
+Open `/stats.html` on the frontend (or use **Statistics** in the header) to see
+each node's address, weight, availability, and running jobs with job ID, game,
+and map filename. The page refreshes every five seconds and supports manual
+refresh. It requires the frontend to point at the load balancer.
+
+The load balancer's `GET /api/stats` queries each backend's
+`GET /api/running-jobs` concurrently. It returns `nodes` and `totalRunningJobs`
+(the total on reachable nodes). Each node includes `online`, `jobCount`,
+`runningJobs`, and `error`; unavailable nodes have null job counts/lists rather
+than being reported as idle. Running jobs are identified by their run files and
+reported only by the backend identified in their `owner` files.
 
 ### Live configuration updates
 

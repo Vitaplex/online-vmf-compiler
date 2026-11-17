@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cluster statistics - Online .vmf Compiler</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/favicon.ico">
+    <script type="module" src="/static/js/stats.js"></script>
+</head>
+
+<body>
+    <header>
+        <img id="logo" src="/static/media/logo.png">
+        <h1>Cluster statistics</h1>
+        <div id="header-content-right">
+            <a class="header-link" href="/">Compiler</a>
+            <button class="slim" id="refresh-stats" type="button">Refresh</button>
+        </div>
+    </header>
+    <main id="stats-page">
+        <p id="stats-summary" role="status">Loading statistics...</p>
+        <p id="stats-error" role="alert" hidden></p>
+        <div id="stats-nodes"></div>
+    </main>
+</body>
+
+</html>

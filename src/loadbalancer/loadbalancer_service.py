@@ -1,5 +1,6 @@
 import asyncio
 import random
+import logging
 import os,sys,inspect
 from random import randint
 
@@ -11,6 +12,11 @@ sys.path.insert(0, parent_dir)
 
 from helpers import *
 from config_watcher import ConfigFileWatcher
+
+
+class JobRoutingError(Exception):
+    pass
+
 
 class LoadBalancerService:
     def __init__(self):
@@ -37,7 +43,7 @@ class LoadBalancerService:
             return None
         return next((node for node in self.nodes if node.get("name", "").lower() == node_name.lower()), None)      
       
-    async def resolve_job_node(self, job_id):
+    async def resolve_job_node(self, job_id, require_owner=False):
         async with httpx.AsyncClient(timeout=5) as client:
             async def check_node(node):
                 try:
@@ -49,23 +55,35 @@ class LoadBalancerService:
                         return None
 
                     response.raise_for_status()
-                    return node
+                    details = response.json()
+                    if not isinstance(details, dict) or details.get("success") is not True:
+                        return None
+                    return node, details.get("isOwner") is True
 
-                except httpx.HTTPError:
+                except (httpx.HTTPError, ValueError) as error:
+                    logging.getLogger(__name__).warning(
+                        "Could not look up job %s on %s: %s", job_id, node["address"], error
+                    )
                     return None
 
             results = await asyncio.gather(
                 *(check_node(node) for node in self.nodes)
             )
 
-        matches = [node for node in results if node is not None]
+        matches = [result for result in results if result is not None]
+        owners = [node for node, is_owner in matches if is_owner]
 
-        if len(matches) > 1:
-            raise RuntimeError(
-                f"Job {job_id} exists on multiple backend nodes"
+        if len(owners) > 1:
+            raise JobRoutingError(f"Multiple backends claim ownership of job {job_id}")
+        if owners:
+            return owners[0]
+        if require_owner and matches:
+            raise JobRoutingError(
+                f"Cannot safely cancel job {job_id}: its owning backend is unavailable "
+                "or ownership is unknown"
             )
 
-        return matches[0] if matches else None
+        return matches[0][0] if matches else None
 def parse_nodes_file(filename):
     nodes_path = filename if os.path.isabs(filename) else get_config_path(
         filename, os.path.join("loadbalancer", filename)

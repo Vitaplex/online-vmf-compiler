@@ -123,6 +123,285 @@ class ProxyRoutingTests(unittest.TestCase):
                         result or {"success": False, "error": "Job not found"},
                     )
 
+    def test_running_jobs_report_only_active_job_directories(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            job_dir = root / "assets" / "mapsrc" / "active-job"
+            job_dir.mkdir(parents=True)
+            (job_dir / "runfile").touch()
+            (job_dir / "owner").write_text(
+                self.backend.compile_job_service.node_id, encoding="utf-8"
+            )
+            (job_dir / "test.vmf").write_text("world {}", encoding="utf-8")
+            finished_dir = job_dir.parent / "finished-job"
+            finished_dir.mkdir()
+            (finished_dir / "finished.vmf").touch()
+            config = [{
+                "name": "Test Game", "path": temp,
+                "assetDir": "assets", "sourceVmfs": "mapsrc",
+            }]
+            with (
+                patch.object(self.backend.game_file_manager, "get_config", return_value=config),
+                TestClient(self.backend.app) as client,
+            ):
+                response = client.get("/api/running-jobs")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), [{
+                    "jobId": "active-job", "game": "Test Game", "fileName": "test.vmf",
+                }])
+                self.assertEqual(client.get("/api/jobs-count").json(), 1)
+
+    def test_shared_storage_records_owner_and_blocks_foreign_or_unknown_cancellation(self):
+        service_module = sys.modules[self.backend.CompileJobService.__module__]
+        with tempfile.TemporaryDirectory() as temp:
+            config = {
+                "name": "Shared Game", "path": temp,
+                "assetDir": "assets", "sourceVmfs": "mapsrc",
+            }
+            owner = self.backend.CompileJobService(self.backend.game_file_manager)
+            reader = self.backend.CompileJobService(self.backend.game_file_manager)
+            owner.node_id = "owner-node"
+            reader.node_id = "reader-node"
+            with (
+                patch.object(self.backend.game_file_manager, "get_config", return_value=[config]),
+                patch.object(self.backend.game_file_manager, "get_directory", return_value=config),
+            ):
+                created = owner.create_compile_job(b"world {}", "Shared Game", "shared.vmf")
+                self.assertTrue(created["success"])
+                job_id = created["jobId"]
+                job_dir = Path(created["mapFilePath"]).parent
+                (job_dir / "runfile").touch()
+                self.assertEqual((job_dir / "owner").read_text(encoding="utf-8"), "owner-node")
+                self.assertTrue(owner.get_compile_job(job_id)["isOwner"])
+                self.assertFalse(reader.get_compile_job(job_id)["isOwner"])
+                self.assertEqual(reader.get_compile_job(job_id)["ownerNode"], "owner-node")
+                self.assertEqual(len(owner.get_running_job_details()), 1)
+                self.assertEqual(reader.get_running_job_details(), [])
+                with patch.object(service_module, "try_get_running_process", return_value=[]) as processes:
+                    self.assertTrue(owner.cancel_compile_job(job_id))
+                    processes.assert_called_once_with([])
+
+                services = {"owner": owner, "reader": reader}
+                nodes = [
+                    {"name": name, "address": f"http://{name}", "weight": 1}
+                    for name in services
+                ]
+                async_client = httpx.AsyncClient
+
+                def backend_response(request):
+                    service = services[request.url.host]
+                    if request.url.path == "/api/running-jobs":
+                        return httpx.Response(200, json=service.get_running_job_details())
+                    self.assertEqual(request.url.path, "/api/jobs-count")
+                    count = sum(len(game["runningJobs"]) for game in service.get_running_jobs())
+                    return httpx.Response(200, json=count)
+
+                transport = httpx.MockTransport(backend_response)
+                with (
+                    patch.object(self.loadbalancer.loadbalancer_service, "nodes", nodes),
+                    patch.object(
+                        self.loadbalancer.httpx, "AsyncClient",
+                        side_effect=lambda **kwargs: async_client(transport=transport, **kwargs),
+                    ),
+                    TestClient(self.loadbalancer.app) as client,
+                ):
+                    stats = client.get("/api/stats").json()
+                    self.assertEqual(stats["totalRunningJobs"], 1)
+                    self.assertEqual([node["jobCount"] for node in stats["nodes"]], [1, 0])
+                    self.assertEqual(client.get("/api/jobs-count").text, "1")
+
+                with (
+                    patch.object(self.backend, "compile_job_service", reader),
+                    patch.object(service_module, "try_get_running_process") as processes,
+                    TestClient(self.backend.app) as client,
+                ):
+                    response = client.delete(f"/api/compile/{job_id}")
+                    self.assertEqual(response.status_code, 409)
+                    processes.assert_not_called()
+                    self.assertEqual(client.get("/api/jobs-count").json(), 0)
+
+                restarted = self.backend.CompileJobService(self.backend.game_file_manager)
+                restarted.node_id = owner.node_id
+                self.assertTrue(restarted.get_compile_job(job_id)["isOwner"])
+                self.assertEqual(len(restarted.get_running_job_details()), 1)
+
+                (job_dir / "owner").unlink()
+                self.assertTrue(reader.get_compile_job(job_id)["success"])
+                self.assertIsNone(reader.get_compile_job(job_id)["ownerNode"])
+                with (
+                    patch.object(self.backend, "compile_job_service", reader),
+                    patch.object(service_module, "try_get_running_process") as processes,
+                    TestClient(self.backend.app) as client,
+                ):
+                    self.assertEqual(client.delete(f"/api/compile/{job_id}").status_code, 409)
+                    self.assertEqual(client.delete("/api/compile/not-found").status_code, 404)
+                    processes.assert_not_called()
+
+    def test_shared_job_routes_to_owner_and_reads_survive_owner_outage(self):
+        nodes = [
+            {"name": name, "address": f"http://{name}", "weight": 1}
+            for name in ("reader", "owner")
+        ]
+        async_client = httpx.AsyncClient
+        forwarded = []
+        offline = False
+
+        def backend_response(request):
+            if offline and request.url.host == "owner":
+                raise httpx.ConnectError("Owner offline", request=request)
+            forwarded.append((request.method, request.url.host, request.url.path))
+            if request.method == "DELETE":
+                self.assertEqual(request.url.host, "owner")
+                return httpx.Response(200, json={"success": True})
+            if request.url.path.startswith("/api/bsp/"):
+                return httpx.Response(200, content=b"compiled bsp")
+            return httpx.Response(200, json={
+                "success": True, "statuses": [], "log": None,
+                "ownerNode": "owner-host", "isOwner": request.url.host == "owner",
+            })
+
+        transport = httpx.MockTransport(backend_response)
+        with (
+            patch.object(self.loadbalancer.loadbalancer_service, "nodes", nodes),
+            patch.object(
+                self.loadbalancer.httpx, "AsyncClient",
+                side_effect=lambda **kwargs: async_client(transport=transport, **kwargs),
+            ),
+            TestClient(self.loadbalancer.app) as client,
+        ):
+            for method, path in (
+                ("GET", "/api/compile/shared-job"),
+                ("GET", "/api/bsp/shared-job"),
+                ("DELETE", "/api/compile/shared-job"),
+            ):
+                with self.subTest(method=method, path=path):
+                    response = client.request(method, path)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.headers["X-Served-By"], "owner")
+            offline = True
+            with self.assertLogs(self.node_service.__name__, level="WARNING"):
+                response = client.get("/api/compile/shared-job")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.headers["X-Served-By"], "reader")
+                self.assertEqual(client.get("/api/bsp/shared-job").content, b"compiled bsp")
+                response = client.delete("/api/compile/shared-job")
+            self.assertEqual(response.status_code, 409)
+            self.assertIn("owning backend is unavailable", response.json()["detail"])
+            self.assertNotIn(("DELETE", "reader", "/api/compile/shared-job"), forwarded)
+
+    def test_legacy_shared_job_reads_succeed_but_unverified_cancellation_is_rejected(self):
+        nodes = [
+            {"name": name, "address": f"http://{name}", "weight": 1}
+            for name in ("first", "second")
+        ]
+        async_client = httpx.AsyncClient
+        details = {"success": True, "statuses": [], "log": None}
+        transport = httpx.MockTransport(lambda request: httpx.Response(200, json=details))
+        with (
+            patch.object(self.loadbalancer.loadbalancer_service, "nodes", nodes),
+            patch.object(
+                self.loadbalancer.httpx, "AsyncClient",
+                side_effect=lambda **kwargs: async_client(transport=transport, **kwargs),
+            ),
+            TestClient(self.loadbalancer.app) as client,
+        ):
+            response = client.get("/api/compile/legacy-job")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers["X-Served-By"], "first")
+            self.assertEqual(client.delete("/api/compile/legacy-job").status_code, 409)
+
+    def test_conflicting_owner_claims_return_explicit_conflict(self):
+        nodes = [
+            {"name": name, "address": f"http://{name}", "weight": 1}
+            for name in ("first", "second")
+        ]
+        async_client = httpx.AsyncClient
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(200, json={"success": True, "isOwner": True})
+        )
+        with (
+            patch.object(self.loadbalancer.loadbalancer_service, "nodes", nodes),
+            patch.object(
+                self.loadbalancer.httpx, "AsyncClient",
+                side_effect=lambda **kwargs: async_client(transport=transport, **kwargs),
+            ),
+            TestClient(self.loadbalancer.app) as client,
+        ):
+            response = client.delete("/api/compile/job")
+            self.assertEqual(response.status_code, 409)
+            self.assertIn("claim ownership", response.json()["detail"])
+
+    def test_statistics_include_running_idle_and_unavailable_nodes(self):
+        nodes = [
+            {"name": name, "address": f"http://{name}", "weight": 2}
+            for name in ("active", "idle", "offline", "invalid", "timeout", "error")
+        ]
+        jobs = [{"jobId": "test-job", "game": "Test Game", "fileName": "test.vmf"}]
+        async_client = httpx.AsyncClient
+
+        def backend_response(request):
+            self.assertEqual(request.url.path, "/api/running-jobs")
+            host = request.url.host
+            if host == "offline":
+                raise httpx.ConnectError("Node offline", request=request)
+            if host == "timeout":
+                raise httpx.ReadTimeout("Node timed out", request=request)
+            if host == "error":
+                return httpx.Response(500)
+            if host == "invalid":
+                return httpx.Response(200, json=[{"wrong": "shape"}])
+            return httpx.Response(200, json=jobs if host == "active" else [])
+
+        transport = httpx.MockTransport(backend_response)
+        with (
+            patch.object(self.loadbalancer.loadbalancer_service, "nodes", nodes),
+            patch.object(
+                self.loadbalancer.httpx, "AsyncClient",
+                side_effect=lambda **kwargs: async_client(transport=transport, **kwargs),
+            ),
+            TestClient(self.loadbalancer.app) as client,
+        ):
+            with self.assertLogs(self.loadbalancer.__name__, level="WARNING"):
+                response = client.get("/api/stats", headers={"X-Preferred-Node": "idle"})
+
+        self.assertEqual(response.status_code, 200)
+        stats = response.json()
+        self.assertEqual(stats["totalRunningJobs"], 1)
+        self.assertEqual(len(stats["nodes"]), len(nodes))
+        self.assertEqual(stats["nodes"][0]["runningJobs"], jobs)
+        self.assertEqual(stats["nodes"][0]["jobCount"], 1)
+        self.assertEqual(stats["nodes"][1]["runningJobs"], [])
+        self.assertEqual(stats["nodes"][1]["jobCount"], 0)
+        for node in stats["nodes"][2:]:
+            self.assertFalse(node["online"])
+            self.assertIsNone(node["runningJobs"])
+            self.assertIsNone(node["jobCount"])
+            self.assertTrue(node["error"])
+
+    def test_statistics_without_nodes(self):
+        with (
+            patch.object(self.loadbalancer.loadbalancer_service, "nodes", []),
+            TestClient(self.loadbalancer.app) as client,
+        ):
+            self.assertEqual(
+                client.get("/api/stats").json(), {"nodes": [], "totalRunningJobs": 0}
+            )
+
+    def test_frontend_serves_statistics_page_and_proxies_statistics(self):
+        upstream = requests.Response()
+        upstream.status_code = 200
+        upstream._content = b'{"nodes": [], "totalRunningJobs": 0}'
+        upstream.headers["Content-Type"] = "application/json"
+        with TestClient(self.frontend.app) as client:
+            page = client.get("/stats.html")
+            self.assertEqual(page.status_code, 200)
+            self.assertIn('/static/js/stats.js', page.text)
+            self.assertIn('/static/css/style.css', page.text)
+            with patch.object(self.frontend.requests, "request", return_value=upstream) as forward:
+                response = client.get("/api/stats")
+            self.assertEqual(response.json(), {"nodes": [], "totalRunningJobs": 0})
+            self.assertEqual(forward.call_args.kwargs["url"], self.frontend.BACKEND_URL + "/api/stats")
+
     def test_loadbalancer_finds_only_the_owning_node(self):
         nodes = [
             {"name": "owner", "address": "http://owner", "weight": 1},
