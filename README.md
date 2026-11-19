@@ -123,15 +123,7 @@ Edit `nodes.json` in the repository root to set up the Nodes that should be used
 
 Open `/stats.html` on the frontend (or use **Statistics** in the header) to see
 each node's address, weight, availability, and running jobs with job ID, game,
-and map filename. The page refreshes every five seconds and supports manual
-refresh. It requires the frontend to point at the load balancer.
-
-The load balancer's `GET /api/stats` queries each backend's
-`GET /api/running-jobs` concurrently. It returns `nodes` and `totalRunningJobs`
-(the total on reachable nodes). Each node includes `online`, `jobCount`,
-`runningJobs`, and `error`; unavailable nodes have null job counts/lists rather
-than being reported as idle. Running jobs are identified by their run files and
-reported only by the backend identified in their `owner` files.
+and map filename. The page refreshes every five seconds. It requires the frontend to point at the load balancer.
 
 ### Live configuration updates
 
@@ -140,12 +132,11 @@ active `config.json`. Changes, including replacing the file when saving, are
 checked every second and applied without restarting either service. Backend
 updates also rebuild the VPK asset index before publishing the new configuration.
 
+## Per-node config overrides
 The active file is selected at startup: an override in `%SystemDrive%\OVMFC`
 (for example, `C:\OVMFC\config.json`) takes precedence over the working-directory
 file. If neither exists, the service checks its `backend` or `loadbalancer`
-subdirectory. The listener watches that selected path for the service's lifetime.
-Malformed or unreadable updates are logged, and the last valid configuration
-remains active until a subsequent valid edit. Listeners stop on service shutdown.
+subdirectory.
 
 ## Future features
 * [x] Load-balancer middleware to spread compiler tasks across multiple computers (cluster setup)?
